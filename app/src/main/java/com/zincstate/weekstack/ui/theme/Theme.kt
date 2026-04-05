@@ -26,12 +26,12 @@ private val StrictDarkColorScheme = darkColorScheme(
 
 private val SimpleLightColorScheme = lightColorScheme(
     primary = LightAccent,
-    secondary = LightGrey,
+    secondary = LightOnSurface,
     tertiary = LightHeader1,
     background = LightBackground,
     surface = LightSurface,
     onPrimary = LightSurface,
-    onSecondary = LightHeader7,
+    onSecondary = LightOnSurface,
     onTertiary = LightOnSurface,
     onBackground = LightOnSurface,
     onSurface = LightOnSurface,
@@ -48,7 +48,7 @@ fun getHeaderShades(isDark: Boolean): List<androidx.compose.ui.graphics.Color> {
 }
 
 @Composable
-fun WeekstackTheme(
+fun ZenStackTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

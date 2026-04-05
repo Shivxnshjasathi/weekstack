@@ -66,7 +66,6 @@ fun DayHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (isFirstItem) Modifier.statusBarsPadding() else Modifier)
                 .padding(horizontal = 24.dp, vertical = if (isExpanded) 12.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -74,7 +73,7 @@ fun DayHeader(
                 Text(
                     text = date.format(dayOfWeekFormatter).uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = if (isExpanded) MaterialTheme.colorScheme.onBackground else Color.White.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 if (isExpanded) {
                     Text(
