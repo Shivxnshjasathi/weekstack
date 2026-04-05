@@ -3,12 +3,15 @@ package com.zincstate.weekstack.presentation.home.components
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.res.stringResource
+import com.zincstate.weekstack.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,20 +36,21 @@ fun AddTaskInput(
 
     Row(modifier = modifier
         .fillMaxWidth()
-        .padding(horizontal = 48.dp, vertical = 8.dp)
+        .padding(horizontal = 24.dp, vertical = 4.dp)
     ) {
         TextField(
             value = textValue,
             onValueChange = { textValue = it },
             placeholder = { 
                 Text(
-                    text = "Add a task...", 
+                    text = stringResource(R.string.add_task_placeholder), 
                     color = MaterialTheme.colorScheme.secondary
                 ) 
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .testTag("add_task_input"),
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = MaterialTheme.colorScheme.onBackground
             ),

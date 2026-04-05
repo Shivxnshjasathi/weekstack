@@ -8,10 +8,14 @@ import com.zincstate.weekstack.presentation.home.HomeScreen
 import com.zincstate.weekstack.ui.theme.WeekstackTheme
 import dagger.hilt.android.AndroidEntryPoint
 
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        installSplashScreen()
         enableEdgeToEdge()
         setContent {
             WeekstackTheme {

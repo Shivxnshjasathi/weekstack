@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.zincstate.weekstack.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,6 +55,7 @@ fun DayHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .testTag("day_header_${date.dayOfWeek.name}")
             .background(if (isExpanded) MaterialTheme.colorScheme.surface else backgroundColor)
             .clickable { 
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -63,7 +67,7 @@ fun DayHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(if (isFirstItem) Modifier.statusBarsPadding() else Modifier)
-                .padding(horizontal = 24.dp, vertical = if (isExpanded) 20.dp else 14.dp),
+                .padding(horizontal = 24.dp, vertical = if (isExpanded) 12.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
@@ -81,7 +85,7 @@ fun DayHeader(
                     )
                     if (lastUpdatedText != null) {
                         Text(
-                            text = "Edited $lastUpdatedText",
+                            text = stringResource(R.string.edited_at, lastUpdatedText),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
                             modifier = Modifier.padding(top = 2.dp)

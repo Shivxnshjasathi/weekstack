@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -20,6 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.zincstate.weekstack.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,18 +63,16 @@ fun HomeScreen(
             ) {
                 Icon(
                     imageVector = if (state.isDarkMode) Icons.Default.Delete else Icons.Default.Add,
-                    contentDescription = "Toggle Theme",
+                    contentDescription = stringResource(R.string.toggle_theme),
                     tint = if (state.isDarkMode) Color.White else Color.Black
                 )
             }
 
             if (!state.isLoading) {
-                // Use Column with weight to cover full screen height
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    state.datesOfWeek.forEachIndexed { index, date ->
+                    itemsIndexed(state.datesOfWeek) { index, date ->
                         val isExpanded = state.expandedDate == date
                         val tasksForDay = state.tasksMap[date] ?: emptyList()
                         val lastUpdated = state.lastUpdatedMap[date]
@@ -85,14 +86,20 @@ fun HomeScreen(
                             onHeaderClick = { viewModel.toggleDayExpansion(date) },
                             isFirstItem = index == 0,
                             modifier = Modifier
-                                .weight(if (isExpanded) 4f else 1f) // Stretch to fill
                                 .fillMaxWidth()
+                                .then(
+                                    if (isExpanded) {
+                                        Modifier.heightIn(min = 200.dp)
+                                    } else {
+                                        Modifier.fillParentMaxHeight(1f / 7f)
+                                    }
+                                )
                         ) {
-                            // Expandable content
+                            // Expandable content - No internal scroll needed as LazyColumn handles it
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState())
+                                    .padding(bottom = 8.dp)
                             ) {
                                 tasksForDay.forEach { task ->
                                     TaskItem(

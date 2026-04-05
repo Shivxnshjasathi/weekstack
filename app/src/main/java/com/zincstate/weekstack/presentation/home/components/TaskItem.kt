@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -57,6 +58,7 @@ fun TaskItem(
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
+        modifier = modifier.testTag("task_item_${task.id}"),
         backgroundContent = {
             val color by animateColorAsState(
                 targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) 
@@ -81,8 +83,7 @@ fun TaskItem(
                     modifier = Modifier.scale(scale)
                 )
             }
-        },
-        modifier = modifier
+        }
     ) {
         Row(
             modifier = Modifier
@@ -95,6 +96,7 @@ fun TaskItem(
             Checkbox(
                 checked = task.isCompleted,
                 onCheckedChange = { onToggle() },
+                modifier = Modifier.testTag("task_checkbox_${task.id}"),
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colorScheme.tertiary,
                     uncheckedColor = checkboxColor,
