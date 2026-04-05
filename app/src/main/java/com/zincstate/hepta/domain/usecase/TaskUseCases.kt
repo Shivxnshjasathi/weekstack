@@ -16,14 +16,15 @@ class GetTasksForWeek(
 class AddTask(
     private val repository: TaskRepository
 ) {
-    suspend operator fun invoke(text: String, date: LocalDate) {
+    suspend operator fun invoke(text: String, date: LocalDate, position: Int = 0) {
         if (text.isBlank()) return
         
         val task = Task(
             text = text.trim(),
             isCompleted = false,
             targetDate = date,
-            lastUpdated = System.currentTimeMillis()
+            lastUpdated = System.currentTimeMillis(),
+            position = position
         )
         repository.insertTask(task)
     }
@@ -37,6 +38,7 @@ class UpdateTask(
     }
 }
 
+
 class DeleteTask(
     private val repository: TaskRepository
 ) {
@@ -49,5 +51,6 @@ data class TaskUseCases(
     val getTasksForWeek: GetTasksForWeek,
     val addTask: AddTask,
     val updateTask: UpdateTask,
+    val upsertTasks: UpsertTasks,
     val deleteTask: DeleteTask
 )

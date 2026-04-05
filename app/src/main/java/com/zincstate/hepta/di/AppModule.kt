@@ -10,6 +10,7 @@ import com.zincstate.hepta.domain.usecase.DeleteTask
 import com.zincstate.hepta.domain.usecase.GetTasksForWeek
 import com.zincstate.hepta.domain.usecase.TaskUseCases
 import com.zincstate.hepta.domain.usecase.UpdateTask
+import com.zincstate.hepta.domain.usecase.UpsertTasks
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,7 +28,7 @@ object AppModule {
             app,
             HeptaDatabase::class.java,
             "weekstack_db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
@@ -43,6 +44,7 @@ object AppModule {
             getTasksForWeek = GetTasksForWeek(repository),
             addTask = AddTask(repository),
             updateTask = UpdateTask(repository),
+            upsertTasks = UpsertTasks(repository),
             deleteTask = DeleteTask(repository)
         )
     }

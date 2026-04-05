@@ -10,5 +10,7 @@ data class TaskEntity(
     val text: String,
     val isCompleted: Boolean,
     val targetDateEpochDays: Long,
-    val lastUpdated: Long
+    val lastUpdated: Long,
+    val position: Int = 0,
+    val recurringType: Int = 0 // 0=None, 1=Daily, 2=Weekly
 )

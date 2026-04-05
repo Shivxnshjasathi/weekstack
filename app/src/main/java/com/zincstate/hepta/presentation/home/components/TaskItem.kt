@@ -10,6 +10,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.SyncDisabled
+import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import com.zincstate.hepta.domain.model.Task
 import com.zincstate.hepta.ui.theme.*
 
+import androidx.compose.ui.zIndex
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskItem(
@@ -35,7 +41,10 @@ fun TaskItem(
     onToggle: () -> Unit,
     onUpdate: (String) -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    onFocus: () -> Unit,
+    onToggleRecurring: () -> Unit,
+    modifier: Modifier = Modifier,
+    isDragging: Boolean = false
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var textValue by remember { mutableStateOf(task.text) }
@@ -55,17 +64,25 @@ fun TaskItem(
         }
     )
 
+    val dragScale by animateFloatAsState(
+        targetValue = if (isDragging) 1.05f else 1f,
+        label = "dragScale"
+    )
+
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
-        modifier = modifier.testTag("task_item_${task.id}"),
+        modifier = modifier
+            .testTag("task_item_${task.id}")
+            .scale(dragScale)
+            .zIndex(if (isDragging) 1f else 0f),
         backgroundContent = {
             val color by animateColorAsState(
                 targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) 
                     Color(0xFF8B0000) else Color.Transparent,
                 label = "swipeColor"
             )
-            val scale by animateFloatAsState(
+            val iconScale by animateFloatAsState(
                 targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) 1.2f else 1f,
                 label = "iconScale"
             )
@@ -80,7 +97,7 @@ fun TaskItem(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
                     tint = Color.White,
-                    modifier = Modifier.scale(scale)
+                    modifier = Modifier.scale(iconScale)
                 )
             }
         }
@@ -89,7 +106,7 @@ fun TaskItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val checkboxColor = if (task.isCompleted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground
@@ -99,7 +116,7 @@ fun TaskItem(
                     onCheckedChange = { onToggle() },
                     modifier = Modifier.testTag("task_checkbox_${task.id}"),
                     colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.tertiary,
+                        checkedColor = if (task.recurringType > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                         uncheckedColor = checkboxColor,
                         checkmarkColor = MaterialTheme.colorScheme.onBackground
                     )
@@ -144,17 +161,49 @@ fun TaskItem(
             } else {
                 val textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                 val textColor = if (task.isCompleted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground
-                Text(
-                    text = task.text,
+                
+                Row(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { isEditing = true }
                         .padding(vertical = 12.dp),
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        textDecoration = textDecoration
-                    ),
-                    color = textColor
-                )
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = task.text,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            textDecoration = textDecoration
+                        ),
+                        color = textColor
+                    )
+
+                    if (!task.isCompleted) {
+                        IconButton(
+                            onClick = onFocus,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = "Focus",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        
+                        IconButton(
+                            onClick = onToggleRecurring,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (task.recurringType > 0) Icons.Default.Sync else Icons.Default.SyncDisabled,
+                                contentDescription = "Recurring",
+                                tint = if (task.recurringType > 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

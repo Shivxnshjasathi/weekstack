@@ -24,6 +24,10 @@ class TaskRepositoryImpl(
         dao.insertTask(task.toEntity())
     }
 
+    override suspend fun upsertTasks(tasks: List<Task>) {
+        dao.upsertTasks(tasks.map { it.toEntity() })
+    }
+
     override suspend fun updateTask(task: Task) {
         dao.updateTask(task.toEntity())
     }

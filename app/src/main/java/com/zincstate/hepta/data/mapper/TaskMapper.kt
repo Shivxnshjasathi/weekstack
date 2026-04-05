@@ -10,7 +10,9 @@ fun TaskEntity.toDomainTask(): Task {
         text = text,
         isCompleted = isCompleted,
         targetDate = LocalDate.ofEpochDay(targetDateEpochDays),
-        lastUpdated = lastUpdated
+        lastUpdated = lastUpdated,
+        position = position,
+        recurringType = recurringType
     )
 }
 
@@ -20,6 +22,8 @@ fun Task.toEntity(): TaskEntity {
         text = text,
         isCompleted = isCompleted,
         targetDateEpochDays = targetDate.toEpochDay(),
-        lastUpdated = lastUpdated
+        lastUpdated = lastUpdated,
+        position = position,
+        recurringType = recurringType
     )
 }

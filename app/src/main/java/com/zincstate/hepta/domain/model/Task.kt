@@ -7,5 +7,7 @@ data class Task(
     val text: String,
     val isCompleted: Boolean,
     val targetDate: LocalDate,
-    val lastUpdated: Long
+    val lastUpdated: Long,
+    val position: Int = 0,
+    val recurringType: Int = 0
 )

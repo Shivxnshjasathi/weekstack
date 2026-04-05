@@ -1,5 +1,7 @@
 package com.zincstate.hepta.presentation.home.components
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -29,7 +31,10 @@ import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DayHeader(
     date: LocalDate,
@@ -56,40 +61,41 @@ fun DayHeader(
         modifier = modifier
             .fillMaxWidth()
             .testTag("day_header_${date.dayOfWeek.name}")
-            .background(if (isExpanded) MaterialTheme.colorScheme.surface else backgroundColor)
+            .background(backgroundColor)
             .clickable { 
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onHeaderClick() 
             }
     ) {
-        // Expandable Header
+        // Expandable Header (Taller & Bolder)
+        val textColor = if (backgroundColor.red > 0.5f && backgroundColor.green > 0.5f && backgroundColor.blue > 0.5f) Color.Black else Color.White
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = if (isExpanded) 12.dp else 8.dp),
+                .padding(horizontal = 24.dp)
+                .padding(
+                    top = if (isFirstItem) 48.dp else (if (isExpanded) 32.dp else 24.dp),
+                    bottom = if (isExpanded) 32.dp else 24.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
                 Text(
                     text = date.format(dayOfWeekFormatter).uppercase(),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp
+                    ),
+                    color = textColor
                 )
                 if (isExpanded) {
                     Text(
                         text = date.format(fullDateFormatter),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(top = 4.dp)
+                        color = Color.Gray,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
-                    if (lastUpdatedText != null) {
-                        Text(
-                            text = stringResource(R.string.edited_at, lastUpdatedText),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
                 }
             }
         }
