@@ -17,6 +17,13 @@ import com.zincstate.hepta.service.ReminderWorker
 import java.util.concurrent.TimeUnit
 import java.util.Calendar
 
+import com.zincstate.hepta.presentation.about.AboutScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.Crossfade
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,7 +35,18 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             HeptaTheme {
-                HomeScreen()
+                var currentScreen by remember { mutableStateOf("home") }
+
+                Crossfade(targetState = currentScreen, label = "screen_nav") { screen ->
+                    when (screen) {
+                        "home" -> HomeScreen(
+                            onNavigateToAbout = { currentScreen = "about" }
+                        )
+                        "about" -> AboutScreen(
+                            onBack = { currentScreen = "home" }
+                        )
+                    }
+                }
             }
         }
     }

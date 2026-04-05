@@ -48,7 +48,8 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    onNavigateToAbout: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
@@ -119,21 +120,16 @@ fun HomeScreen(
                         letterSpacing = 4.sp
                     )
                     
-                    if (state.inboxTasks.isNotEmpty()) {
-                        val scope = rememberCoroutineScope()
-                        Text(
-                            text = "FUTURE LOG (${state.inboxTasks.size})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 2.sp,
-                            modifier = Modifier
-                                .clickable { 
-                                    scope.launch {
-                                        listState.animateScrollToItem(state.datesOfWeek.size)
-                                    }
-                                }
-                        )
-                    }
+                    Text(
+                        text = "ABOUT",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier
+                            .clickable { 
+                                onNavigateToAbout()
+                            }
+                    )
                 }
 
                 // 2. Task List (Hybrid LazyColumn for Scrolling + Grid look)
