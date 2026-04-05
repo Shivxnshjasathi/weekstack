@@ -101,8 +101,9 @@ fun AboutScreen(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
+                                .width(72.dp)
                                 .clickable { onThemeChange(theme) }
-                                .padding(4.dp)
+                                .padding(vertical = 8.dp)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -193,20 +194,23 @@ fun AboutScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     FeatureItem("Zen 7-Day Grid", "A unified, horizontal-less scroll of your entire week.")
-                    FeatureItem("Infinity Inbox", "The 'Shelf' for future intentions, tucked safely at the bottom.")
-                    FeatureItem("Flow State Tracking", "Focus-session detection for pure Deep Work.")
-                    FeatureItem("Weekly Analytics", "Real-time velocity and progress tracking.")
+                    FeatureItem("Biometric Vault", "Secure your intentions with fingerprint or face ID integration.")
+                    FeatureItem("Deep Work Timer", "Integrated Pomodoro sessions with real-time status overlays.")
+                    FeatureItem("Infinity Inbox", "A permanent shelf for future intentions, tucked at the bottom.")
+                    FeatureItem("Weekly Analytics", "Real-time velocity and progress tracking via Zen Charts.")
                 }
             }
-
+ 
             // 4. Upcoming Features
             item {
                 SectionHeader("UPCOMING")
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    FeatureItem("Biometric Lock", "Secure your intentions with fingerprint or face ID.")
+                    FeatureItem("AI Daily Briefing", "A morning summary of your day's schedule and suggested intentions.")
+                    FeatureItem("Smart Widgets", "Interactive home screen widgets to complete tasks without opening the app.")
+                    FeatureItem("Focus Soundscapes", "Integrated lo-fi and white noise for deep work sessions.")
+                    FeatureItem("Subtasks & Notes", "Ability to break down complex tasks into manageable steps.")
                     FeatureItem("Cloud Backup", "Encrypted synchronization across all your Zincstate devices.")
-                    FeatureItem("Custom Themes", "Refined monochrome variants (Graphite, Obsidian, Arctic).")
                 }
             }
 

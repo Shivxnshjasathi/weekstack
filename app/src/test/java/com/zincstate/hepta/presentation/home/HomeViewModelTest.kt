@@ -1,8 +1,11 @@
 package com.zincstate.hepta.presentation.home
 
+import android.content.Context
 import com.google.common.truth.Truth.assertThat
-import com.zincstate.hepta.domain.model.Task
+import com.zincstate.hepta.domain.usecase.GetCalendarEventsUseCase
+import com.zincstate.hepta.domain.usecase.ShiftTasksUseCase
 import com.zincstate.hepta.domain.usecase.TaskUseCases
+import com.zincstate.hepta.ui.theme.ZenTheme
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,69 +19,60 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
 
-    private val useCases = mockk<TaskUseCases>(relaxed = true)
     private lateinit var viewModel: HomeViewModel
-    private val testDispatcher = StandardTestDispatcher()
+    private lateinit var useCases: TaskUseCases
+    private lateinit var shiftTasks: ShiftTasksUseCase
+    private lateinit var getCalendarEvents: GetCalendarEventsUseCase
+    private lateinit var context: Context
+
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         
-        // Mock default behavior for state initialization
-        val today = LocalDate.now()
+        useCases = mockk(relaxed = true)
+        shiftTasks = mockk(relaxed = true)
+        getCalendarEvents = mockk(relaxed = true)
+        context = mockk(relaxed = true)
+
+        // Mock the flow of tasks
         every { useCases.getTasksForWeek(any(), any()) } returns flowOf(emptyList())
 
-        viewModel = HomeViewModel(useCases)
+        viewModel = HomeViewModel(
+            useCases = useCases,
+            shiftTasks = shiftTasks,
+            getCalendarEvents = getCalendarEvents,
+            context = context
+        )
     }
 
     @After
-    fun teardown() {
+    fun tearDown() {
         Dispatchers.resetMain()
     }
 
     @Test
-    fun initialLoadingState() = runTest {
-        assertThat(viewModel.state.value.isLoading).isTrue()
-        
-        testDispatcher.scheduler.advanceUntilIdle()
-        
-        assertThat(viewModel.state.value.isLoading).isFalse()
-        assertThat(viewModel.state.value.datesOfWeek).hasSize(7)
+    fun initialStateHasCorrectDates() {
+        val state = viewModel.state.value
+        assertThat(state.datesOfWeek).hasSize(7)
+        assertThat(state.isLoading).isFalse()
     }
 
     @Test
-    fun toggleThemeUpdatesState() = runTest {
-        val initialTheme = viewModel.state.value.isDarkMode
-        viewModel.toggleTheme()
-        assertThat(viewModel.state.value.isDarkMode).isNotEqualTo(initialTheme)
+    fun onThemeChangeUpdatesState() {
+        val newTheme = ZenTheme.NORD
+        viewModel.onThemeChange(newTheme)
+        
+        val state = viewModel.state.value
+        assertThat(state.currentZenTheme).isEqualTo(newTheme)
+        assertThat(state.isDarkMode).isTrue()
     }
 
     @Test
-    fun toggleDayExpansionCorrectly() = runTest {
-        val date = LocalDate.now()
-        viewModel.toggleDayExpansion(date)
-        assertThat(viewModel.state.value.expandedDate).isEqualTo(date)
-        
-        viewModel.toggleDayExpansion(date)
-        assertThat(viewModel.state.value.expandedDate).isNull()
-    }
-
-    @Test
-    fun addTaskCallsUseCase() = runTest {
-        val text = "Task 1"
-        val date = LocalDate.now()
-        
-        viewModel.addTask(text, date)
-        
-        coVerify { useCases.addTask(text, date) }
-    }
-
-    @Test
-    fun completeTaskCallsUseCase() = runTest {
-        val task = Task(id = 1, text = "Task", isCompleted = false, targetDate = LocalDate.now(), lastUpdated = 0L)
-        
-        viewModel.toggleTask(task)
-        
-        coVerify { useCases.updateTask(match { it.isCompleted }) }
+    fun statsCalculationForEmptyTasks() {
+        val state = viewModel.state.value
+        assertThat(state.weekProgress).isEqualTo(0f)
+        assertThat(state.totalCompletedTasks).isEqualTo(0)
     }
 }

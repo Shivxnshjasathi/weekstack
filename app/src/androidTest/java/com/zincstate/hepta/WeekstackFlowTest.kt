@@ -37,8 +37,36 @@ class WeekstackFlowTest {
         // Or we use the text itself to find the node
         composeTestRule.onNodeWithText(testTaskText).performClick()
 
-        // 5. Verify it's still there (ui change like strikethrough is internal, 
-        // but we verify the toggle doesn't crash)
+        // 5. Verify it's still there
         composeTestRule.onNodeWithText(testTaskText).assertExists()
+    }
+
+    @Test
+    fun testIdentityAndThemeFlow() {
+        // 1. Navigate to the About/Identity screen via the Nexus Node
+        composeTestRule.onNodeWithText("H").performClick()
+        
+        // 2. Verify we are on the Identity screen
+        composeTestRule.onNodeWithText("IDENTITY").assertIsDisplayed()
+        
+        // 3. Find a theme (e.g., NORD) and click it
+        // We find by the display name uppercase as defined in the UI
+        composeTestRule.onNodeWithText("NORD").performClick()
+        
+        // 4. Navigate back to Home
+        composeTestRule.onNodeWithContentDescription("Back").performClick()
+        
+        // 5. Verify we are back on the Home screen
+        composeTestRule.onNodeWithText("HEPTA").assertIsDisplayed()
+    }
+
+    @Test
+    fun testVaultToggleVisibility() {
+        // 1. Navigate to Identity
+        composeTestRule.onNodeWithText("H").performClick()
+        
+        // 2. Verify Vault section exists
+        composeTestRule.onNodeWithText("VAULT").assertIsDisplayed()
+        composeTestRule.onNodeWithText("BIOMETRIC LOCK").assertIsDisplayed()
     }
 }

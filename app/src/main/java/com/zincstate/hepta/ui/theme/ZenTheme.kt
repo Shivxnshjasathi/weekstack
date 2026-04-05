@@ -15,7 +15,12 @@ enum class ZenTheme(val displayName: String) {
     FOREST("Forest"),
     WINE("Wine"),
     SAND("Sand"),
-    MIDNIGHT("Midnight")
+    MIDNIGHT("Midnight"),
+    EVERFOREST("Everforest"),
+    ROSE_PINE("Rose Pine"),
+    CYBER("Cyber"),
+    SOLARIZED("Solarized"),
+    COBALT("Cobalt")
 }
 
 data class ZenColors(
@@ -153,6 +158,71 @@ fun getZenColors(theme: ZenTheme): ZenColors {
             headerShades = listOf(
                 Color(0xFF334155), Color(0xFF2A3749), Color(0xFF1E293B),
                 Color(0xFF162132), Color(0xFF0F172A), Color(0xFF0B1221), Color(0xFF080D18)
+            )
+        )
+        ZenTheme.EVERFOREST -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFFA7C080),
+                background = Color(0xFF2D353B),
+                surface = Color(0xFF343F44),
+                onBackground = Color(0xFFD3C6AA),
+                onSurface = Color(0xFFD3C6AA)
+            ),
+            headerShades = listOf(
+                Color(0xFF475258), Color(0xFF3D484D), Color(0xFF343F44),
+                Color(0xFF2D353B), Color(0xFF232A2E), Color(0xFF1E2326), Color(0xFF1A1D21)
+            )
+        )
+        ZenTheme.ROSE_PINE -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFFEBBCBA),
+                background = Color(0xFF191724),
+                surface = Color(0xFF1F1D2E),
+                onBackground = Color(0xFFE0DEF4),
+                onSurface = Color(0xFFE0DEF4)
+            ),
+            headerShades = listOf(
+                Color(0xFF26233A), Color(0xFF232136), Color(0xFF1F1D2E),
+                Color(0xFF191724), Color(0xFF16141F), Color(0xFF12101A), Color(0xFF0F0D15)
+            )
+        )
+        ZenTheme.CYBER -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFF00FFFF),
+                background = Color(0xFF050505),
+                surface = Color(0xFF111111),
+                onBackground = Color(0xFFFFFFFF),
+                onSurface = Color(0xFFFFFFFF)
+            ),
+            headerShades = listOf(
+                Color(0xFF222222), Color(0xFF1A1A1A), Color(0xFF111111),
+                Color(0xFF0A0A0A), Color(0xFF050505), Color(0xFF000000), Color(0xFF000000)
+            )
+        )
+        ZenTheme.SOLARIZED -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFF268BD2),
+                background = Color(0xFF002B36),
+                surface = Color(0xFF073642),
+                onBackground = Color(0xFF839496),
+                onSurface = Color(0xFF839496)
+            ),
+            headerShades = listOf(
+                Color(0xFF586E75), Color(0xFF073642), Color(0xFF002B36),
+                Color(0xFF00212B), Color(0xFF001920), Color(0xFF001116), Color(0xFF000A0D)
+            )
+        )
+        ZenTheme.COBALT -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFF82AAFF),
+                background = Color(0xFF002240),
+                surface = Color(0xFF003366),
+                onBackground = Color(0xFFFFFFFF),
+                onSurface = Color(0xFFFFFFFF)
+            ),
+            headerShades = listOf(
+                Color(0xFF004488), Color(0xFF003366), Color(0xFF002240),
+                Color(0xFF001A33), Color(0xFF001121), Color(0xFF000B16), Color(0xFF00060B)
             )
         )
     }
