@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.zincstate.hepta.ui.theme.getZenColors
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,8 +79,10 @@ fun HomeScreen(
     val remainingSeconds by FocusService.remainingTime.collectAsState()
     val currentTaskName by FocusService.currentTaskName.collectAsState()
     
-    HeptaTheme(darkTheme = state.isDarkMode, dynamicColor = true) {
-        val headerShades = getHeaderShades(state.isDarkMode)
+    val zenColors = getZenColors(state.currentZenTheme)
+    
+    HeptaTheme(zenTheme = state.currentZenTheme) {
+        val headerShades = zenColors.headerShades
 
         BoxWithConstraints(
             modifier = Modifier
@@ -104,7 +107,7 @@ fun HomeScreen(
                     )
                 }
 
-                // 1.5 Header with Inbox Count (Zen - Safe Space)
+                // 1.5 Header with Identity Signature
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -152,7 +155,7 @@ fun HomeScreen(
                                 DayHeader(
                                     date = date,
                                     isExpanded = isExpanded,
-                                    backgroundColor = headerShades.getOrElse(index) { MaterialTheme.colorScheme.surface },
+                                    backgroundColor = headerShades.getOrElse(index) { zenColors.colorScheme.surface },
                                     lastUpdated = lastUpdated,
                                     eventTag = eventTag,
                                     loadFactor = loadFactor,
@@ -318,35 +321,36 @@ fun HomeScreen(
 
                                 Spacer(modifier = Modifier.height(64.dp))
 
-                                // 4b. The Infinity Inbox
-                                Text(
-                                    text = "∞ THE INFINITY INBOX",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                    letterSpacing = 2.sp
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
 
                         // 4c. Inbox Tasks within the Shelf
                         if (state.inboxTasks.isNotEmpty()) {
+                            item {
+                                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                                    Text(
+                                        text = "∞ THE INFINITY INBOX",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        letterSpacing = 2.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
+                            }
                             items(
                                 items = state.inboxTasks,
                                 key = { "inbox_shelf_${it.id}" }
                             ) { task ->
-                                Box(modifier = Modifier.padding(horizontal = 12.dp)) {
-                                    TaskItem(
-                                        task = task,
-                                        onToggle = { viewModel.toggleTask(task) },
-                                        onUpdate = { viewModel.updateTaskText(task, it) },
-                                        onDelete = { viewModel.deleteTask(task) },
-                                        onFocus = { viewModel.startFocusSession(context, task) },
-                                        onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
-                                        onShiftToInbox = { viewModel.shiftToInbox(task) },
-                                        isDragging = false
-                                    )
-                                }
+                                TaskItem(
+                                    task = task,
+                                    onToggle = { viewModel.toggleTask(task) },
+                                    onUpdate = { viewModel.updateTaskText(task, it) },
+                                    onDelete = { viewModel.deleteTask(task) },
+                                    onFocus = { viewModel.startFocusSession(context, task) },
+                                    onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
+                                    onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                    isDragging = false
+                                )
                             }
                         }
 
@@ -399,7 +403,7 @@ fun HomeScreen(
                 ModalBottomSheet(
                     onDismissRequest = { viewModel.toggleStats() },
                     dragHandle = { BottomSheetDefaults.DragHandle(color = Color.Gray.copy(alpha = 0.3f)) },
-                    containerColor = if (state.isDarkMode) Color.Black else Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 ) {
                     WeeklyStatsSheet(
                         dates = state.datesOfWeek,

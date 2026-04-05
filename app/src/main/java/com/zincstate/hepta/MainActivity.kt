@@ -23,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.animation.Crossfade
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -34,16 +36,22 @@ class MainActivity : ComponentActivity() {
         scheduleDailyReminder()
         
         setContent {
-            HeptaTheme {
+            val viewModel: com.zincstate.hepta.presentation.home.HomeViewModel = hiltViewModel()
+            val state by viewModel.state.collectAsState()
+            
+            HeptaTheme(zenTheme = state.currentZenTheme) {
                 var currentScreen by remember { mutableStateOf("home") }
 
                 Crossfade(targetState = currentScreen, label = "screen_nav") { screen ->
                     when (screen) {
                         "home" -> HomeScreen(
+                            viewModel = viewModel,
                             onNavigateToAbout = { currentScreen = "about" }
                         )
                         "about" -> AboutScreen(
-                            onBack = { currentScreen = "home" }
+                            onBack = { currentScreen = "home" },
+                            currentTheme = state.currentZenTheme,
+                            onThemeChange = { viewModel.onThemeChange(it) }
                         )
                     }
                 }

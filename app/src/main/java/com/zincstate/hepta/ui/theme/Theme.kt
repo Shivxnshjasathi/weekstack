@@ -17,55 +17,30 @@ import android.os.Build
 
 private val StrictDarkColorScheme = darkColorScheme(
     primary = PrimaryAccent,
-    secondary = LightGrey,
-    tertiary = SubtleGrey,
     background = DeepCharcoal,
     surface = SurfaceDark,
-    onPrimary = DeepCharcoal,
-    onSecondary = DeepCharcoal,
-    onTertiary = HighContrastWhite,
     onBackground = HighContrastWhite,
     onSurface = HighContrastWhite,
 )
 
 private val SimpleLightColorScheme = lightColorScheme(
     primary = LightAccent,
-    secondary = LightOnSurface,
-    tertiary = LightHeader1,
     background = LightBackground,
     surface = LightSurface,
-    onPrimary = LightSurface,
-    onSecondary = LightOnSurface,
-    onTertiary = LightOnSurface,
     onBackground = LightOnSurface,
     onSurface = LightOnSurface,
 )
 
-// Helper to get zebra shades for each mode
-@Composable
-fun getHeaderShades(isDark: Boolean): List<androidx.compose.ui.graphics.Color> {
-    return if (isDark) {
-        listOf(HeaderGrey1, HeaderGrey2, HeaderGrey3, HeaderGrey4, HeaderGrey5, HeaderGrey6, HeaderGrey7)
-    } else {
-        listOf(LightHeader1, LightHeader2, LightHeader3, LightHeader4, LightHeader5, LightHeader6, LightHeader7)
-    }
-}
-
 @Composable
 fun HeptaTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    zenTheme: ZenTheme = ZenTheme.OBSIDIAN,
+    darkTheme: Boolean = zenTheme != ZenTheme.ARCTIC && zenTheme != ZenTheme.SEPIA,
+    dynamicColor: Boolean = false, // Disable dynamic color to enforce our premium Zen themes
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> StrictDarkColorScheme
-        else -> SimpleLightColorScheme
-    }
+    val zenColors = getZenColors(zenTheme)
+    val colorScheme = zenColors.colorScheme
+    
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

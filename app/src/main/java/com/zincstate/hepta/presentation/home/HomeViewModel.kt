@@ -22,6 +22,8 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
+import com.zincstate.hepta.ui.theme.ZenTheme
+
 data class HomeUiState(
     val datesOfWeek: List<LocalDate> = emptyList(),
     val tasksMap: Map<LocalDate, List<Task>> = emptyMap(),
@@ -34,6 +36,7 @@ data class HomeUiState(
     val expandedDate: LocalDate? = null,
     val isLoading: Boolean = true,
     val isDarkMode: Boolean = true,
+    val currentZenTheme: ZenTheme = ZenTheme.OBSIDIAN,
     val showStats: Boolean = false,
     val completionStats: Map<LocalDate, Float> = emptyMap(),
     val hasCalendarPermission: Boolean = false,
@@ -233,6 +236,16 @@ class HomeViewModel @Inject constructor(
                 totalDeepWorkCount = deepWorkCount,
                 totalCompletedTasks = completedTasks,
                 totalTasks = totalTasks
+            )
+        }
+    }
+
+    fun onThemeChange(theme: ZenTheme) {
+        _state.update { 
+            it.copy(
+                currentZenTheme = theme,
+                // Arctic and Sepia are light-themed in our mapping
+                isDarkMode = theme != ZenTheme.ARCTIC && theme != ZenTheme.SEPIA
             )
         }
     }

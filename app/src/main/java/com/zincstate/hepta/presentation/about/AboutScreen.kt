@@ -1,6 +1,8 @@
 package com.zincstate.hepta.presentation.about
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,11 +16,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zincstate.hepta.ui.theme.ZenTheme
+import com.zincstate.hepta.ui.theme.getZenColors
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    currentTheme: ZenTheme = ZenTheme.OBSIDIAN,
+    onThemeChange: (ZenTheme) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -54,16 +60,17 @@ fun AboutScreen(
             item {
                 Column {
                     Text(
-                        text = "ZINCSTATE",
+                        text = "HEPTA",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 4.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "by Shivansh Jasathi",
+                        text = "by Zincstate",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Normal
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -76,7 +83,63 @@ fun AboutScreen(
                 }
             }
 
-            // 2. The Hepta Philosophy
+            // 2. Theme Selector
+            item {
+                SectionHeader("THEME")
+                Spacer(modifier = Modifier.height(16.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Filter out standard Dark/Light themes as requested
+                    ZenTheme.entries.filter { 
+                        it != ZenTheme.OBSIDIAN && it != ZenTheme.ARCTIC 
+                    }.forEach { theme ->
+                        val colors = getZenColors(theme)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clickable { onThemeChange(theme) }
+                                .padding(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(
+                                        color = colors.colorScheme.background,
+                                        shape = androidx.compose.foundation.shape.CircleShape
+                                    )
+                                    .border(
+                                        width = if (currentTheme == theme) 2.dp else 1.dp,
+                                        color = if (currentTheme == theme) colors.colorScheme.primary else colors.colorScheme.onSurface.copy(alpha = 0.1f),
+                                        shape = androidx.compose.foundation.shape.CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .background(
+                                            color = colors.colorScheme.primary,
+                                            shape = androidx.compose.foundation.shape.CircleShape
+                                        )
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = theme.displayName.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (currentTheme == theme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                fontSize = 8.sp,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3. The Hepta Philosophy
             item {
                 SectionHeader("THE HEPTA PHILOSOPHY")
                 Spacer(modifier = Modifier.height(16.dp))
