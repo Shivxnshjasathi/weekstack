@@ -3,6 +3,7 @@ package com.zincstate.hepta.presentation.about
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +30,31 @@ fun AboutScreen(
     isVaultEnabled: Boolean = false,
     onVaultToggle: (Boolean) -> Unit = {}
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
     Scaffold(
+        modifier = Modifier.pointerInput(Unit) {
+            val edgeThreshold = 40.dp.toPx()
+            var isFromEdge = false
+            detectHorizontalDragGestures(
+                onDragStart = { offset ->
+                    isFromEdge = offset.x < edgeThreshold
+                },
+                onDragEnd = {
+                    isFromEdge = false
+                },
+                onDragCancel = {
+                    isFromEdge = false
+                },
+                onHorizontalDrag = { change, dragAmount ->
+                    if (isFromEdge && dragAmount > 20f) {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        onBack()
+                        change.consume()
+                    }
+                }
+            )
+        },
         topBar = {
             TopAppBar(
                 title = { 
@@ -90,7 +116,7 @@ fun AboutScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Filter out standard Dark/Light themes as requested
@@ -101,7 +127,7 @@ fun AboutScreen(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .width(72.dp)
+                                .width(64.dp)
                                 .clickable { onThemeChange(theme) }
                                 .padding(vertical = 8.dp)
                         ) {

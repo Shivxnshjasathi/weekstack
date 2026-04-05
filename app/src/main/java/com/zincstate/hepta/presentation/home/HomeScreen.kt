@@ -7,6 +7,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -89,6 +91,28 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
+                .pointerInput(Unit) {
+                    val edgeThreshold = 30.dp.toPx()
+                    var isFromEdge = false
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            isFromEdge = offset.x < edgeThreshold
+                        },
+                        onDragEnd = {
+                            isFromEdge = false
+                        },
+                        onDragCancel = {
+                            isFromEdge = false
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            if (isFromEdge && dragAmount > 20f) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToAbout()
+                                change.consume()
+                            }
+                        }
+                    )
+                }
         ) {
             val totalHeight = maxHeight
             // Calculate a base height that fills 1/7th of the screen (adjusting for spacers)

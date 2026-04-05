@@ -234,18 +234,26 @@ class HomeViewModel @Inject constructor(
         val tasksMap = _state.value.tasksMap
         val allWeeklyTasks = tasksMap.values.flatten()
         
-        val totalTasks = allWeeklyTasks.size
-        val completedTasks = allWeeklyTasks.count { it.isCompleted }
+        val totalTasksCount = allWeeklyTasks.size
+        val completedTasksCount = allWeeklyTasks.count { it.isCompleted }
         val deepWorkCount = allWeeklyTasks.count { it.isCompleted && it.isFocusCompleted }
         
-        val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
+        val progress = if (totalTasksCount > 0) completedTasksCount.toFloat() / totalTasksCount else 0f
+        
+        // Calculate per-day completion stats for the bar chart
+        val statsMap = _state.value.datesOfWeek.associateWith { date ->
+            val dayTasks = tasksMap[date] ?: emptyList()
+            if (dayTasks.isEmpty()) 0f 
+            else dayTasks.count { it.isCompleted }.toFloat() / dayTasks.size
+        }
         
         _state.update {
             it.copy(
                 weekProgress = progress,
                 totalDeepWorkCount = deepWorkCount,
-                totalCompletedTasks = completedTasks,
-                totalTasks = totalTasks
+                totalCompletedTasks = completedTasksCount,
+                totalTasks = totalTasksCount,
+                completionStats = statsMap
             )
         }
     }

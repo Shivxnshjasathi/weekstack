@@ -33,6 +33,7 @@ import com.zincstate.hepta.domain.model.Task
 import com.zincstate.hepta.ui.theme.*
 
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -60,12 +61,19 @@ fun TaskItem(
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
-            if (it == SwipeToDismissBoxValue.EndToStart) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onDelete()
-                true
-            } else {
-                false
+            when (it) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onDelete()
+                    true
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggle()
+                    // Reset the swipe state to center after action
+                    false 
+                }
+                else -> false
             }
         }
     )
@@ -77,33 +85,41 @@ fun TaskItem(
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        enableDismissFromStartToEnd = true,
         modifier = modifier
             .testTag("task_item_${task.id}")
             .scale(dragScale)
             .zIndex(if (isDragging) 1f else 0f),
         backgroundContent = {
+            val direction = dismissState.dismissDirection
             val color by animateColorAsState(
-                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) 
-                    Color(0xFF8B0000) else Color.Transparent,
+                targetValue = when (direction) {
+                    SwipeToDismissBoxValue.EndToStart -> Color(0xFF8B0000) // Red for delete
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) // Theme primary for complete
+                    else -> Color.Transparent
+                },
                 label = "swipeColor"
             )
-            val iconScale by animateFloatAsState(
-                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) 1.2f else 1f,
-                label = "iconScale"
-            )
+            
+            val icon = when (direction) {
+                SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+                else -> Icons.Default.Check
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(color)
                     .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.CenterEnd
+                contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) 
+                    Alignment.CenterStart else Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    imageVector = icon,
+                    contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.scale(iconScale)
+                    modifier = Modifier.scale(1.2f)
                 )
             }
         }
