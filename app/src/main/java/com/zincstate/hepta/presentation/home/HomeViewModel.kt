@@ -505,11 +505,30 @@ class HomeViewModel @Inject constructor(
             )
             
             val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
-            alarmManager.setExactAndAllowWhileIdle(
-                android.app.AlarmManager.RTC_WAKEUP,
-                timeMillis,
-                pendingIntent
-            )
+            
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    // Fallback to non-exact alarm if permission is missing
+                    alarmManager.setAndAllowWhileIdle(
+                        android.app.AlarmManager.RTC_WAKEUP,
+                        timeMillis,
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        android.app.AlarmManager.RTC_WAKEUP,
+                        timeMillis,
+                        pendingIntent
+                    )
+                }
+            } catch (e: Exception) {
+                // Final safety net to prevent app crashes if system state changes
+                alarmManager.setAndAllowWhileIdle(
+                    android.app.AlarmManager.RTC_WAKEUP,
+                    timeMillis,
+                    pendingIntent
+                )
+            }
         }
     }
 
