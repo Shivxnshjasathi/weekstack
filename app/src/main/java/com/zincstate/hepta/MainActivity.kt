@@ -25,9 +25,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.animation.Crossfade
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
+import com.zincstate.hepta.util.BiometricHelper
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+
+    private var needsAuth = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -40,23 +57,51 @@ class MainActivity : ComponentActivity() {
             val state by viewModel.state.collectAsState()
             
             HeptaTheme(zenTheme = state.currentZenTheme) {
-                var currentScreen by remember { mutableStateOf("home") }
+                // Vault Gate: If enabled & not authenticated, show lock screen
+                if (state.isVaultEnabled && !state.isVaultAuthenticated) {
+                    VaultScreen(
+                        onUnlockRequest = {
+                            BiometricHelper.authenticate(
+                                activity = this@MainActivity,
+                                onSuccess = { viewModel.setVaultAuthenticated(true) },
+                                onError = { /* Stay locked */ }
+                            )
+                        }
+                    )
+                } else {
+                    var currentScreen by remember { mutableStateOf("home") }
 
-                Crossfade(targetState = currentScreen, label = "screen_nav") { screen ->
-                    when (screen) {
-                        "home" -> HomeScreen(
-                            viewModel = viewModel,
-                            onNavigateToAbout = { currentScreen = "about" }
-                        )
-                        "about" -> AboutScreen(
-                            onBack = { currentScreen = "home" },
-                            currentTheme = state.currentZenTheme,
-                            onThemeChange = { viewModel.onThemeChange(it) }
-                        )
+                    Crossfade(targetState = currentScreen, label = "screen_nav") { screen ->
+                        when (screen) {
+                            "home" -> HomeScreen(
+                                viewModel = viewModel,
+                                onNavigateToAbout = { currentScreen = "about" }
+                            )
+                            "about" -> AboutScreen(
+                                onBack = { currentScreen = "home" },
+                                currentTheme = state.currentZenTheme,
+                                onThemeChange = { viewModel.onThemeChange(it) },
+                                isVaultEnabled = state.isVaultEnabled,
+                                onVaultToggle = { viewModel.toggleVault(it) }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (needsAuth) {
+            // Re-lock when returning from background
+            needsAuth = false
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        needsAuth = true
     }
 
     private fun scheduleDailyReminder() {
@@ -81,5 +126,57 @@ class MainActivity : ComponentActivity() {
             calendar.add(Calendar.DAY_OF_YEAR, 1)
         }
         return calendar.timeInMillis - now
+    }
+}
+
+@Composable
+fun VaultScreen(onUnlockRequest: () -> Unit) {
+    // Auto-trigger auth on first composition
+    LaunchedEffect(Unit) {
+        onUnlockRequest()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .clickable { onUnlockRequest() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Branding Node
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(24.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "H",
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+            Text(
+                text = "HEPTA VAULT",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                letterSpacing = 4.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Tap to unlock your workspace",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
+        }
     }
 }

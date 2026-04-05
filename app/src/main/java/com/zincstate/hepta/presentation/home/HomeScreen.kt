@@ -444,7 +444,7 @@ fun FocusTimerOverlay(
     val timeStr = "%02d:%02d".format(minutes, seconds)
 
     Surface(
-        color = Color.Black,
+        color = MaterialTheme.colorScheme.surface,
         modifier = modifier.fillMaxWidth()
     ) {
         Column {
@@ -458,12 +458,12 @@ fun FocusTimerOverlay(
                     Text(
                         text = "FOCUSING ON",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                     Text(
                         text = taskName.uppercase(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -474,15 +474,15 @@ fun FocusTimerOverlay(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Light
                     ),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
 
                 IconButton(
                     onClick = onStop,
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.White.copy(alpha = 0.1f),
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Icon(
@@ -495,8 +495,8 @@ fun FocusTimerOverlay(
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().height(2.dp),
-                color = Color.White,
-                trackColor = Color.White.copy(alpha = 0.1f),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                 strokeCap = StrokeCap.Butt
             )
         }

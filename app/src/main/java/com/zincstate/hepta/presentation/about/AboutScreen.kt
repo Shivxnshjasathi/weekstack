@@ -24,7 +24,9 @@ import com.zincstate.hepta.ui.theme.getZenColors
 fun AboutScreen(
     onBack: () -> Unit,
     currentTheme: ZenTheme = ZenTheme.OBSIDIAN,
-    onThemeChange: (ZenTheme) -> Unit = {}
+    onThemeChange: (ZenTheme) -> Unit = {},
+    isVaultEnabled: Boolean = false,
+    onVaultToggle: (Boolean) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -135,6 +137,41 @@ fun AboutScreen(
                             )
                         }
                     }
+                }
+            }
+
+            // 2b. Vault Security Toggle
+            item {
+                SectionHeader("VAULT")
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "BIOMETRIC LOCK",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Require fingerprint or face to open HEPTA",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                    Switch(
+                        checked = isVaultEnabled,
+                        onCheckedChange = { onVaultToggle(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
                 }
             }
 

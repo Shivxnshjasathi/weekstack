@@ -31,7 +31,7 @@ data class HomeUiState(
     val inboxTasks: List<Task> = emptyList(),
     val calendarEventsMap: Map<LocalDate, List<com.zincstate.hepta.domain.model.CalendarEvent>> = emptyMap(),
     val dayTagsMap: Map<LocalDate, String> = emptyMap(),
-    val dayLoadMap: Map<LocalDate, Float> = emptyMap(), // Load factor 0.0 - 1.0
+    val dayLoadMap: Map<LocalDate, Float> = emptyMap(),
     val lastUpdatedMap: Map<LocalDate, Long> = emptyMap(),
     val expandedDate: LocalDate? = null,
     val isLoading: Boolean = true,
@@ -43,7 +43,9 @@ data class HomeUiState(
     val weekProgress: Float = 0f,
     val totalDeepWorkCount: Int = 0,
     val totalCompletedTasks: Int = 0,
-    val totalTasks: Int = 0
+    val totalTasks: Int = 0,
+    val isVaultEnabled: Boolean = false,
+    val isVaultAuthenticated: Boolean = false
 )
 
 @HiltViewModel
@@ -190,6 +192,13 @@ class HomeViewModel @Inject constructor(
 
         // Observe the current week + the "Inbox" (MAX date)
         observeTasks(startOfWeek, endOfWeek)
+
+        // Load vault preference
+        val vaultEnabled = com.zincstate.hepta.util.VaultPreferences.isVaultEnabled(context)
+        _state.update { it.copy(
+            isVaultEnabled = vaultEnabled,
+            isVaultAuthenticated = !vaultEnabled // If vault is off, consider authenticated
+        ) }
     }
 
     private fun observeTasks(start: LocalDate, end: LocalDate) {
@@ -244,10 +253,18 @@ class HomeViewModel @Inject constructor(
         _state.update { 
             it.copy(
                 currentZenTheme = theme,
-                // Arctic and Sepia are light-themed in our mapping
                 isDarkMode = theme != ZenTheme.ARCTIC && theme != ZenTheme.SEPIA
             )
         }
+    }
+
+    fun toggleVault(enabled: Boolean) {
+        com.zincstate.hepta.util.VaultPreferences.setVaultEnabled(context, enabled)
+        _state.update { it.copy(isVaultEnabled = enabled) }
+    }
+
+    fun setVaultAuthenticated(authenticated: Boolean) {
+        _state.update { it.copy(isVaultAuthenticated = authenticated) }
     }
 
     fun updateMorningIntention(date: LocalDate, text: String) {
