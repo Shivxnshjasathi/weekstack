@@ -113,7 +113,10 @@ fun TaskItem(
             if (!isEditing || textValue.isNotBlank()) {
                 Checkbox(
                     checked = task.isCompleted,
-                    onCheckedChange = { onToggle() },
+                    onCheckedChange = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggle() 
+                    },
                     modifier = Modifier.testTag("task_checkbox_${task.id}"),
                     colors = CheckboxDefaults.colors(
                         checkedColor = if (task.recurringType > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,

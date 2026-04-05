@@ -31,6 +31,9 @@ import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -44,6 +47,7 @@ fun DayHeader(
     onHeaderClick: () -> Unit,
     modifier: Modifier = Modifier,
     eventTag: String? = null,
+    loadFactor: Float = 0.0f,
     isFirstItem: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -95,7 +99,7 @@ fun DayHeader(
                                 fontWeight = FontWeight.Medium,
                                 letterSpacing = 1.sp
                             ),
-                            color = textColor.copy(alpha = 0.5f),
+                            color = textColor.copy(alpha = 0.4f),
                             modifier = Modifier.padding(start = 8.dp, bottom = 6.dp)
                         )
                     }

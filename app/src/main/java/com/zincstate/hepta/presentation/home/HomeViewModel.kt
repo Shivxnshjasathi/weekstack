@@ -27,6 +27,7 @@ data class HomeUiState(
     val tasksMap: Map<LocalDate, List<Task>> = emptyMap(),
     val calendarEventsMap: Map<LocalDate, List<com.zincstate.hepta.domain.model.CalendarEvent>> = emptyMap(),
     val dayTagsMap: Map<LocalDate, String> = emptyMap(),
+    val dayLoadMap: Map<LocalDate, Float> = emptyMap(), // Load factor 0.0 - 1.0
     val lastUpdatedMap: Map<LocalDate, Long> = emptyMap(),
     val expandedDate: LocalDate? = null,
     val isLoading: Boolean = true,
@@ -39,12 +40,39 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val useCases: TaskUseCases,
+    private val shiftTasks: com.zincstate.hepta.domain.usecase.ShiftTasksUseCase,
     private val getCalendarEvents: com.zincstate.hepta.domain.usecase.GetCalendarEventsUseCase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    private fun calculateDayLoad() {
+        val tasksMap = _state.value.tasksMap
+        val calendarEventsMap = _state.value.calendarEventsMap
+        val dates = _state.value.datesOfWeek
+        
+        val counts = dates.associateWith { date ->
+            (tasksMap[date]?.size ?: 0) + (calendarEventsMap[date]?.size ?: 0)
+        }
+        
+        val maxCount = (counts.values.maxOfOrNull { it } ?: 1).toFloat().coerceAtLeast(1f)
+        
+        val loads = counts.mapValues { entry ->
+            entry.value.toFloat() / maxCount
+        }
+        
+        _state.update { it.copy(dayLoadMap = loads) }
+    }
+    
+    fun shiftUnfinishedTasks(fromDate: LocalDate, toDate: LocalDate) {
+        viewModelScope.launch {
+            val unfinished = _state.value.tasksMap[fromDate]?.filter { !it.isCompleted } ?: return@launch
+            shiftTasks(fromDate, toDate, unfinished)
+            // The flow from Room will automatically refresh observeTasks
+        }
+    }
 
     private fun checkCalendarPermission(): Boolean {
         return androidx.core.content.ContextCompat.checkSelfPermission(
@@ -84,6 +112,7 @@ class HomeViewModel @Inject constructor(
                     dayTagsMap = tags
                 )
             }
+            calculateDayLoad()
         }
     }
 

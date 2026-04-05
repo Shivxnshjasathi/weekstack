@@ -128,17 +128,50 @@ fun HomeScreen(
                                 val eventTag = state.dayTagsMap[date]
                                 val calendarEvents = state.calendarEventsMap[date] ?: emptyList()
 
+                                val loadFactor = state.dayLoadMap[date] ?: 0f
+
                                 DayHeader(
                                     date = date,
                                     isExpanded = isExpanded,
                                     backgroundColor = headerShades.getOrElse(index) { MaterialTheme.colorScheme.surface },
                                     lastUpdated = lastUpdated,
                                     eventTag = eventTag,
+                                    loadFactor = loadFactor,
                                     onHeaderClick = { viewModel.toggleDayExpansion(date) },
                                     modifier = Modifier.heightIn(min = if (!isExpanded) baseHeaderHeight else 0.dp)
                                 ) {
+                                    val tomorrow = state.datesOfWeek.getOrNull(index + 1)
+                                    val uncompletedTasks = tasksForDay.filter { !it.isCompleted }
+
                                     // Tasks and Events within this day
                                     Column {
+                                        // 0. Quick Actions (Shift to Tomorrow)
+                                        if (isExpanded && tomorrow != null && uncompletedTasks.isNotEmpty()) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                                                    .clickable { 
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        viewModel.shiftUnfinishedTasks(date, tomorrow) 
+                                                    },
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowForward,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "SHIFT ${uncompletedTasks.size} TO ${tomorrow.dayOfWeek.name}",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                    letterSpacing = 1.sp
+                                                )
+                                            }
+                                        }
                                         // 1. Official Calendar Events
                                         calendarEvents.filter { !it.isAllDay }.sortedBy { it.startTime }.forEach { event ->
                                             CalendarEventItem(event = event)
