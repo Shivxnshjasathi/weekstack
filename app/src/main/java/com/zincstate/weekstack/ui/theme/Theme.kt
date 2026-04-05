@@ -48,7 +48,7 @@ fun getHeaderShades(isDark: Boolean): List<androidx.compose.ui.graphics.Color> {
 }
 
 @Composable
-fun ZenStackTheme(
+fun WeekstackTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {

@@ -50,7 +50,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     
-    ZenStackTheme(darkTheme = state.isDarkMode) {
+    WeekstackTheme(darkTheme = state.isDarkMode) {
         val headerShades = getHeaderShades(state.isDarkMode)
 
         Box(

@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.zincstate.weekstack.presentation.home.HomeScreen
-import com.zincstate.weekstack.ui.theme.ZenStackTheme
+import com.zincstate.weekstack.ui.theme.WeekstackTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         enableEdgeToEdge()
         setContent {
-            ZenStackTheme {
+            WeekstackTheme {
                 HomeScreen()
             }
         }
