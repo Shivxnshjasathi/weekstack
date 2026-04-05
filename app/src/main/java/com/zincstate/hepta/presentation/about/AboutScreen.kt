@@ -69,9 +69,8 @@ fun AboutScreen(
                     Text(
                         text = "by Zincstate",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Normal
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(

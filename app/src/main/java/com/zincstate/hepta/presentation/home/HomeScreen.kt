@@ -3,7 +3,7 @@ package com.zincstate.hepta.presentation.home
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -121,17 +122,6 @@ fun HomeScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         letterSpacing = 4.sp
-                    )
-                    
-                    Text(
-                        text = "ABOUT",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 2.sp,
-                        modifier = Modifier
-                            .clickable { 
-                                onNavigateToAbout()
-                            }
                     )
                 }
 
@@ -361,7 +351,18 @@ fun HomeScreen(
             }
             }
 
-            // 3. Bottom Actions Dock (Fixed)
+            // 3. The Identity Nexus Dock (Glassmorphic)
+            val infiniteTransition = rememberInfiniteTransition(label = "nexus_pulse")
+            val pulseScale by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000, easing = LinearOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse_scale"
+            )
+
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -371,28 +372,41 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = { viewModel.toggleTheme() },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                    )
+                // The Lexus Nexus Node (Identity Shortcut)
+                Box(
+                    modifier = Modifier
+                        .scale(pulseScale)
+                        .size(52.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary, // The accent color of the theme
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .clickable { onNavigateToAbout() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (state.isDarkMode) Icons.Default.WbSunny else Icons.Default.NightsStay,
-                        contentDescription = stringResource(R.string.toggle_theme),
-                        tint = MaterialTheme.colorScheme.onSurface
+                    Text(
+                        text = "H",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.background,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 IconButton(
                     onClick = { viewModel.toggleStats() },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            shape = CircleShape
+                        ),
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                        containerColor = Color.Transparent
                     )
                 ) {
                     Icon(
                         imageVector = Icons.Default.BarChart,
-                        contentDescription = "Stats",
+                        contentDescription = "Zen Analytics",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
