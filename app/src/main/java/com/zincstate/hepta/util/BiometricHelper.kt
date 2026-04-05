@@ -7,9 +7,10 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
-object VaultPreferences {
-    private const val PREFS_NAME = "hepta_vault_prefs"
+object AppPreferences {
+    private const val PREFS_NAME = "hepta_app_prefs"
     private const val KEY_VAULT_ENABLED = "vault_enabled"
+    private const val KEY_SELECTED_THEME = "selected_theme"
 
     private fun prefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -21,6 +22,19 @@ object VaultPreferences {
 
     fun setVaultEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_VAULT_ENABLED, enabled).apply()
+    }
+
+    fun getTheme(context: Context): com.zincstate.hepta.ui.theme.ZenTheme {
+        val themeName = prefs(context).getString(KEY_SELECTED_THEME, com.zincstate.hepta.ui.theme.ZenTheme.OBSIDIAN.name)
+        return try {
+            com.zincstate.hepta.ui.theme.ZenTheme.valueOf(themeName ?: com.zincstate.hepta.ui.theme.ZenTheme.OBSIDIAN.name)
+        } catch (e: Exception) {
+            com.zincstate.hepta.ui.theme.ZenTheme.OBSIDIAN
+        }
+    }
+
+    fun setTheme(context: Context, theme: com.zincstate.hepta.ui.theme.ZenTheme) {
+        prefs(context).edit().putString(KEY_SELECTED_THEME, theme.name).apply()
     }
 }
 

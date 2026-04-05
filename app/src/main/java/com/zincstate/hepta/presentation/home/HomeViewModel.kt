@@ -183,22 +183,23 @@ class HomeViewModel @Inject constructor(
             current = current.plusDays(1)
         }
 
+        // Load settings from AppPreferences
+        val savedTheme = com.zincstate.hepta.util.AppPreferences.getTheme(context)
+        val vaultEnabled = com.zincstate.hepta.util.AppPreferences.isVaultEnabled(context)
+        
         _state.update {
             it.copy(
                 datesOfWeek = datesRow,
-                expandedDate = today
+                expandedDate = today,
+                currentZenTheme = savedTheme,
+                isDarkMode = savedTheme != com.zincstate.hepta.ui.theme.ZenTheme.ARCTIC && savedTheme != com.zincstate.hepta.ui.theme.ZenTheme.SEPIA,
+                isVaultEnabled = vaultEnabled,
+                isVaultAuthenticated = !vaultEnabled // If vault is off, consider authenticated
             )
         }
 
-        // Observe the current week + the "Inbox" (MAX date)
+        // Observe the current week + the "Infinity Inbox" (MAX date)
         observeTasks(startOfWeek, endOfWeek)
-
-        // Load vault preference
-        val vaultEnabled = com.zincstate.hepta.util.VaultPreferences.isVaultEnabled(context)
-        _state.update { it.copy(
-            isVaultEnabled = vaultEnabled,
-            isVaultAuthenticated = !vaultEnabled // If vault is off, consider authenticated
-        ) }
     }
 
     private fun observeTasks(start: LocalDate, end: LocalDate) {
@@ -250,6 +251,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onThemeChange(theme: ZenTheme) {
+        com.zincstate.hepta.util.AppPreferences.setTheme(context, theme)
         _state.update { 
             it.copy(
                 currentZenTheme = theme,
@@ -259,7 +261,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleVault(enabled: Boolean) {
-        com.zincstate.hepta.util.VaultPreferences.setVaultEnabled(context, enabled)
+        com.zincstate.hepta.util.AppPreferences.setVaultEnabled(context, enabled)
         _state.update { it.copy(isVaultEnabled = enabled) }
     }
 
