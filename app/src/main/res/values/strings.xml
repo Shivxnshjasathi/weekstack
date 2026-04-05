@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Weekstack</string>
+    <string name="app_name">HEPTA</string>
     <string name="add_task_placeholder">Add a task…</string>
     <string name="edited_at">Edited %1$s</string>
     <string name="delete_task">Delete task</string>

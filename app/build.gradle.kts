@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.zincstate.weekstack"
+    namespace = "com.zincstate.hepta"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.zincstate.weekstack"
+        applicationId = "com.zincstate.hepta"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
