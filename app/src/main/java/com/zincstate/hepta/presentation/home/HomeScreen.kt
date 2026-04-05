@@ -35,6 +35,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.zincstate.hepta.R
 import com.zincstate.hepta.presentation.home.components.AddTaskInput
+import com.zincstate.hepta.presentation.home.components.CalendarEventItem
 import com.zincstate.hepta.presentation.home.components.DayHeader
 import com.zincstate.hepta.presentation.home.components.TaskItem
 import com.zincstate.hepta.ui.theme.*
@@ -53,6 +54,22 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     var draggingTaskId by remember { mutableStateOf<Int?>(null) }
     
+    // Calendar Permission handling
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        viewModel.updatePermissionStatus()
+    }
+    
+    // Check permission on start
+    LaunchedEffect(Unit) {
+        if (!state.hasCalendarPermission) {
+            permissionLauncher.launch(android.Manifest.permission.READ_CALENDAR)
+        } else {
+            viewModel.updatePermissionStatus()
+        }
+    }
+
     // Focus Timer State
     val isTimerRunning by FocusService.isRunning.collectAsState()
     val remainingSeconds by FocusService.remainingTime.collectAsState()
@@ -108,16 +125,26 @@ fun HomeScreen(
                             val lastUpdated = state.lastUpdatedMap[date]
                             
                             item(key = "day_${date.toEpochDay()}") {
+                                val eventTag = state.dayTagsMap[date]
+                                val calendarEvents = state.calendarEventsMap[date] ?: emptyList()
+
                                 DayHeader(
                                     date = date,
                                     isExpanded = isExpanded,
                                     backgroundColor = headerShades.getOrElse(index) { MaterialTheme.colorScheme.surface },
                                     lastUpdated = lastUpdated,
+                                    eventTag = eventTag,
                                     onHeaderClick = { viewModel.toggleDayExpansion(date) },
                                     modifier = Modifier.heightIn(min = if (!isExpanded) baseHeaderHeight else 0.dp)
                                 ) {
-                                    // Tasks within this day
+                                    // Tasks and Events within this day
                                     Column {
+                                        // 1. Official Calendar Events
+                                        calendarEvents.filter { !it.isAllDay }.sortedBy { it.startTime }.forEach { event ->
+                                            CalendarEventItem(event = event)
+                                        }
+
+                                        // 2. HEPTA Manual Tasks
                                         tasksForDay.sortedBy { it.position }.forEachIndexed { taskIndex, task ->
                                             val isDragging = draggingTaskId == task.id
                                             Box(

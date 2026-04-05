@@ -43,6 +43,7 @@ fun DayHeader(
     lastUpdated: Long?,
     onHeaderClick: () -> Unit,
     modifier: Modifier = Modifier,
+    eventTag: String? = null,
     isFirstItem: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -77,14 +78,28 @@ fun DayHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = date.format(dayOfWeekFormatter).uppercase(),
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    ),
-                    color = textColor
-                )
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = date.format(dayOfWeekFormatter).uppercase(),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp
+                        ),
+                        color = textColor
+                    )
+                    
+                    if (eventTag != null) {
+                        Text(
+                            text = " • ${eventTag.uppercase()}",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 1.sp
+                            ),
+                            color = textColor.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp)
+                        )
+                    }
+                }
                 
                 if (isExpanded) {
                     Text(

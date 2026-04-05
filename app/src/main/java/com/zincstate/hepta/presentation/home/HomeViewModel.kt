@@ -25,21 +25,67 @@ import javax.inject.Inject
 data class HomeUiState(
     val datesOfWeek: List<LocalDate> = emptyList(),
     val tasksMap: Map<LocalDate, List<Task>> = emptyMap(),
+    val calendarEventsMap: Map<LocalDate, List<com.zincstate.hepta.domain.model.CalendarEvent>> = emptyMap(),
+    val dayTagsMap: Map<LocalDate, String> = emptyMap(),
     val lastUpdatedMap: Map<LocalDate, Long> = emptyMap(),
     val expandedDate: LocalDate? = null,
     val isLoading: Boolean = true,
     val isDarkMode: Boolean = true,
     val showStats: Boolean = false,
-    val completionStats: Map<LocalDate, Float> = emptyMap()
+    val completionStats: Map<LocalDate, Float> = emptyMap(),
+    val hasCalendarPermission: Boolean = false
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val useCases: TaskUseCases
+    private val useCases: TaskUseCases,
+    private val getCalendarEvents: com.zincstate.hepta.domain.usecase.GetCalendarEventsUseCase,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    private fun checkCalendarPermission(): Boolean {
+        return androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.READ_CALENDAR
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    fun updatePermissionStatus() {
+        val hasPermission = checkCalendarPermission()
+        _state.update { it.copy(hasCalendarPermission = hasPermission) }
+        if (hasPermission) {
+            fetchCalendarEvents()
+        }
+    }
+
+    private fun fetchCalendarEvents() {
+        if (!checkCalendarPermission()) return
+        
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val start = _state.value.datesOfWeek.firstOrNull() ?: return@launch
+            val end = _state.value.datesOfWeek.lastOrNull() ?: return@launch
+            
+            val events = getCalendarEvents(start, end)
+            val grouped = events.groupBy { it.date }
+            
+            // Extract All-Day events for Day Tags (e.g. Holidays/Birthdays)
+            val tags = grouped.mapValues { entry ->
+                entry.value.filter { it.isAllDay }
+                    .joinToString(" • ") { it.title }
+                    .takeIf { it.isNotBlank() }
+            }.filterValues { it != null } as Map<LocalDate, String>
+
+            _state.update {
+                it.copy(
+                    calendarEventsMap = grouped,
+                    dayTagsMap = tags
+                )
+            }
+        }
+    }
 
     fun toggleTheme() {
         _state.update { it.copy(isDarkMode = !it.isDarkMode) }
