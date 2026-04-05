@@ -118,12 +118,18 @@ fun CalendarScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp)
+                .padding(padding),
+            contentAlignment = Alignment.TopCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .widthIn(max = 800.dp)
+                    .padding(horizontal = 24.dp)
+            ) {
             Spacer(modifier = Modifier.height(32.dp))
             
             // Weekday Headers
@@ -336,6 +342,7 @@ fun CalendarScreen(
         }
     }
 }
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -359,7 +366,8 @@ fun CalendarDayNode(
     ) {
         Box(
             modifier = Modifier
-                .size(42.dp)
+                .fillMaxWidth()
+                .aspectRatio(1f)
                 .background(
                     color = if (isToday) MaterialTheme.colorScheme.primary 
                             else if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)

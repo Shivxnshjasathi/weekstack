@@ -239,19 +239,31 @@ fun AboutScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    com.zincstate.hepta.domain.model.PresetType.entries.forEach { preset ->
-                        GoalPresetCard(
-                            preset = preset,
-                            onClick = { 
-                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                showPresetConfirm = preset 
-                            }
-                        )
+                // Adaptive Grid for Presets
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val columnCount = when {
+                        maxWidth < 340.dp -> 1
+                        maxWidth < 600.dp -> 2
+                        else -> 3
+                    }
+                    val spacing = 16.dp
+                    val itemWidth = (maxWidth - (spacing * (columnCount - 1))) / columnCount
+                    
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing),
+                        verticalArrangement = Arrangement.spacedBy(spacing)
+                    ) {
+                        com.zincstate.hepta.domain.model.PresetType.entries.forEach { preset ->
+                            GoalPresetCard(
+                                preset = preset,
+                                modifier = Modifier.width(itemWidth),
+                                onClick = { 
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    showPresetConfirm = preset 
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -476,12 +488,12 @@ fun SkillChip(name: String) {
 @Composable
 fun GoalPresetCard(
     preset: com.zincstate.hepta.domain.model.PresetType,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val isDefault = preset == com.zincstate.hepta.domain.model.PresetType.DEFAULT
     Surface(
-        modifier = Modifier
-            .width(172.dp)
+        modifier = modifier
             .clickable { onClick() },
         color = if (isDefault) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f),
         shape = RoundedCornerShape(12.dp)

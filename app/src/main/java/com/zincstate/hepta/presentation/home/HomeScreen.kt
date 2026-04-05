@@ -85,8 +85,16 @@ fun HomeScreen(
     
     val zenColors = getZenColors(state.currentZenTheme)
     
+    // Dynamic Fading for Custom Themes: Create 7 alpha-shaded colors from the base custom color
+    val headerShades = remember(state.currentZenTheme, state.customThemeColor) {
+        if (state.currentZenTheme == com.zincstate.hepta.ui.theme.ZenTheme.CUSTOM && state.customThemeColor != null) {
+            List(7) { i -> state.customThemeColor!!.copy(alpha = 0.03f + (i * 0.08f)) }
+        } else {
+            zenColors.headerShades
+        }
+    }
+    
     HeptaTheme(zenTheme = state.currentZenTheme) {
-        val headerShades = zenColors.headerShades
 
         BoxWithConstraints(
             modifier = Modifier
@@ -160,11 +168,18 @@ fun HomeScreen(
 
                 // 2. Task List (Hybrid LazyColumn for Scrolling + Grid look)
                 if (!state.isLoading) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 120.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.TopCenter
                     ) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .widthIn(max = 800.dp),
+                            contentPadding = PaddingValues(bottom = 120.dp)
+                        ) {
                         state.datesOfWeek.forEachIndexed { index, date ->
                             val isExpanded = state.expandedDate == date
                             val tasksForDay = state.tasksMap[date] ?: emptyList()
@@ -381,8 +396,9 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.navigationBarsPadding().height(120.dp))
                         }
                     }
+                }
             }
-            }
+            } // End of Column (line 122)
 
             // 3. The Identity Nexus Dock (Glassmorphic)
             val infiniteTransition = rememberInfiniteTransition(label = "nexus_pulse")
