@@ -20,7 +20,8 @@ enum class ZenTheme(val displayName: String) {
     ROSE_PINE("Rose Pine"),
     CYBER("Cyber"),
     SOLARIZED("Solarized"),
-    COBALT("Cobalt")
+    COBALT("Cobalt"),
+    CUSTOM("Custom")
 }
 
 data class ZenColors(
@@ -28,7 +29,11 @@ data class ZenColors(
     val headerShades: List<Color>
 )
 
-fun getZenColors(theme: ZenTheme): ZenColors {
+fun getZenColors(theme: ZenTheme, customColor: Color = Color.Unspecified): ZenColors {
+    if (theme == ZenTheme.CUSTOM && customColor != Color.Unspecified) {
+        return generateCustomZenColors(customColor)
+    }
+
     return when (theme) {
         ZenTheme.OBSIDIAN -> ZenColors(
             colorScheme = darkColorScheme(
@@ -121,7 +126,7 @@ fun getZenColors(theme: ZenTheme): ZenColors {
                 Color(0xFF161E16), Color(0xFF111711), Color(0xFF0C100C), Color(0xFF070907)
             )
         )
-         ZenTheme.WINE -> ZenColors(
+        ZenTheme.WINE -> ZenColors(
             colorScheme = darkColorScheme(
                 primary = Color(0xFFA88B8B),
                 background = Color(0xFF1E1414),
@@ -225,5 +230,34 @@ fun getZenColors(theme: ZenTheme): ZenColors {
                 Color(0xFF001A33), Color(0xFF001121), Color(0xFF000B16), Color(0xFF00060B)
             )
         )
+        ZenTheme.CUSTOM -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFFE0E0E0),
+                background = Color(0xFF121212),
+                surface = Color(0xFF1E1E1E),
+                onBackground = Color(0xFFFFFFFF),
+                onSurface = Color(0xFFFFFFFF)
+            ),
+            headerShades = List(7) { Color(0xFF121212) }
+        )
     }
+}
+
+private fun generateCustomZenColors(baseColor: Color): ZenColors {
+    // Generate 7 shades for headers by varying luminance
+    val shades = List(7) { i ->
+        val darkness = 0.05f + (i * 0.05f) // 0.05 to 0.35
+        baseColor.copy(alpha = darkness) // Simplest way to get shades of the user's color
+    }
+    
+    return ZenColors(
+        colorScheme = darkColorScheme(
+            primary = baseColor,
+            background = Color(0xFF050505), // Deep black background for custom themes
+            surface = Color(0xFF111111),
+            onBackground = Color(0xFFFFFFFF),
+            onSurface = Color(0xFFFFFFFF)
+        ),
+        headerShades = shades.reversed()
+    )
 }

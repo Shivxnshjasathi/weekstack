@@ -11,6 +11,7 @@ object AppPreferences {
     private const val PREFS_NAME = "hepta_app_prefs"
     private const val KEY_VAULT_ENABLED = "vault_enabled"
     private const val KEY_SELECTED_THEME = "selected_theme"
+    private const val KEY_CUSTOM_THEME_COLOR = "custom_theme_color_hex"
 
     private fun prefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -35,6 +36,14 @@ object AppPreferences {
 
     fun setTheme(context: Context, theme: com.zincstate.hepta.ui.theme.ZenTheme) {
         prefs(context).edit().putString(KEY_SELECTED_THEME, theme.name).apply()
+    }
+
+    fun getCustomColorHex(context: Context): String? {
+        return prefs(context).getString(KEY_CUSTOM_THEME_COLOR, null)
+    }
+
+    fun setCustomColorHex(context: Context, hex: String) {
+        prefs(context).edit().putString(KEY_CUSTOM_THEME_COLOR, hex).apply()
     }
 }
 

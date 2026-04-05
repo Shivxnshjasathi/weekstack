@@ -53,7 +53,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onNavigateToAbout: () -> Unit = {}
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToCalendar: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
@@ -146,6 +147,14 @@ fun HomeScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         letterSpacing = 4.sp
+                    )
+                    
+                    Text(
+                        text = "SETTINGS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.clickable { onNavigateToAbout() }
                     )
                 }
 
@@ -405,7 +414,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.primary, // The accent color of the theme
                             shape = RoundedCornerShape(16.dp)
                         )
-                        .clickable { onNavigateToAbout() },
+                        .clickable { onNavigateToCalendar() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

@@ -43,7 +43,15 @@ class TaskUseCasesTest {
 
     @Test
     fun deleteTaskCallsRepository() = runBlocking {
-        val task = Task(text = "Remove me", lastUpdated = 0, targetDate = LocalDate.now())
+        val task = Task(
+            text = "Remove me", lastUpdated = 0, targetDate = LocalDate.now(),
+            id = TODO(),
+            isCompleted = TODO(),
+            position = TODO(),
+            recurringType = TODO(),
+            isFocusCompleted = TODO(),
+            isMorningIntention = TODO()
+        )
         useCases.deleteTask(task)
         coVerify { repository.deleteTask(task) }
     }

@@ -7,14 +7,19 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,10 +32,32 @@ fun AboutScreen(
     onBack: () -> Unit,
     currentTheme: ZenTheme = ZenTheme.OBSIDIAN,
     onThemeChange: (ZenTheme) -> Unit = {},
+    onCustomThemeChange: (Color) -> Unit = {},
+    onApplyPreset: (com.zincstate.hepta.domain.model.PresetType) -> Unit = {},
     isVaultEnabled: Boolean = false,
     onVaultToggle: (Boolean) -> Unit = {}
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    var showColorPicker by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showPresetConfirm by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.zincstate.hepta.domain.model.PresetType?>(null) }
+    
+    val sheetState = rememberModalBottomSheetState()
+    
+    // Premium Hepta Palette
+    val premiumColors = listOf(
+        Color(0xFF6366F1), // Indigo
+        Color(0xFF8B5CF6), // Violet
+        Color(0xFFEC4899), // Pink
+        Color(0xFFF43F5E), // Rose
+        Color(0xFFF59E0B), // Amber
+        Color(0xFF10B981), // Emerald
+        Color(0xFF06B6D4), // Cyan
+        Color(0xFF3B82F6), // Blue
+        Color(0xFFA8A29E), // Stone
+        Color(0xFFD946EF), // Fuchsia
+        Color(0xFF84cc16), // Lime
+        Color(0xFFfb923c)  // Orange
+    )
 
     Scaffold(
         modifier = Modifier.pointerInput(Unit) {
@@ -128,7 +155,10 @@ fun AboutScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .width(64.dp)
-                                .clickable { onThemeChange(theme) }
+                                .clickable { 
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                    onThemeChange(theme) 
+                                }
                                 .padding(vertical = 8.dp)
                         ) {
                             Box(
@@ -140,29 +170,88 @@ fun AboutScreen(
                                     )
                                     .border(
                                         width = if (currentTheme == theme) 2.dp else 1.dp,
-                                        color = if (currentTheme == theme) colors.colorScheme.primary else colors.colorScheme.onSurface.copy(alpha = 0.1f),
+                                        color = if (currentTheme == theme) MaterialTheme.colorScheme.primary else Color.Transparent,
                                         shape = androidx.compose.foundation.shape.CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .background(
-                                            color = colors.colorScheme.primary,
-                                            shape = androidx.compose.foundation.shape.CircleShape
-                                        )
-                                )
-                            }
+                                    )
+                            )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = theme.displayName.uppercase(),
+                                text = theme.name,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (currentTheme == theme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                 fontSize = 8.sp,
                                 letterSpacing = 1.sp
                             )
                         }
+                    }
+                    
+                    // 2a. The "Prism" Custom Theme Creator Node
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(64.dp)
+                            .clickable { showColorPicker = true }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(Color(0xFFFF0000), Color(0xFF00FF00), Color(0xFF0000FF))
+                                    ),
+                                    shape = androidx.compose.foundation.shape.CircleShape
+                                )
+                                .border(
+                                    width = if (currentTheme == ZenTheme.CUSTOM) 2.dp else 1.dp,
+                                    color = if (currentTheme == ZenTheme.CUSTOM) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = androidx.compose.foundation.shape.CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                             Icon(
+                                 imageVector = Icons.Default.Add,
+                                 contentDescription = null,
+                                 tint = Color.White,
+                                 modifier = Modifier.size(16.dp)
+                             )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "PRISM",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (currentTheme == ZenTheme.CUSTOM) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            fontSize = 8.sp,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+            }
+
+            // 2b. Goal Presets
+            item {
+                SectionHeader("GOAL PRESETS")
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "One-tap setups for your intentional week. Presets add a curated set of tasks across all 7 days.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    com.zincstate.hepta.domain.model.PresetType.entries.forEach { preset ->
+                        GoalPresetCard(
+                            preset = preset,
+                            onClick = { 
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                showPresetConfirm = preset 
+                            }
+                        )
                     }
                 }
             }
@@ -255,6 +344,86 @@ fun AboutScreen(
                 }
             }
         }
+
+        // Bottom Sheets & Dialogs
+        if (showColorPicker) {
+            ModalBottomSheet(
+                onDismissRequest = { showColorPicker = false },
+                sheetState = sheetState,
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                        .padding(bottom = 32.dp)
+                ) {
+                    Text(
+                        text = "PRISM: CHOOSE IDENTITY",
+                        style = MaterialTheme.typography.labelLarge,
+                        letterSpacing = 2.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        premiumColors.forEach { color ->
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(color, androidx.compose.foundation.shape.CircleShape)
+                                    .clickable { 
+                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                        onCustomThemeChange(color)
+                                        showColorPicker = false
+                                    }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+            }
+        }
+
+        // Preset Apply Confirm
+        if (showPresetConfirm != null) {
+            AlertDialog(
+                onDismissRequest = { showPresetConfirm = null },
+                containerColor = MaterialTheme.colorScheme.surface,
+                title = { 
+                    Text(
+                        "APPLY ${showPresetConfirm?.displayName}?", 
+                        style = MaterialTheme.typography.titleMedium,
+                        letterSpacing = 1.sp
+                    ) 
+                },
+                text = { 
+                    Text(
+                        "This will populate your entire week with tasks from this preset. Existing tasks will not be deleted.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    ) 
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showPresetConfirm?.let { onApplyPreset(it) }
+                        showPresetConfirm = null
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    }) {
+                        Text("APPLY", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPresetConfirm = null }) {
+                        Text("CANCEL", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -291,15 +460,47 @@ fun ProjectItem(name: String, desc: String) {
 @Composable
 fun SkillChip(name: String) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.small,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Text(
-            text = name,
-            style = MaterialTheme.typography.bodySmall,
+            text = name.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            letterSpacing = 1.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
+    }
+}
+
+@Composable
+fun GoalPresetCard(
+    preset: com.zincstate.hepta.domain.model.PresetType,
+    onClick: () -> Unit
+) {
+    val isDefault = preset == com.zincstate.hepta.domain.model.PresetType.DEFAULT
+    Surface(
+        modifier = Modifier
+            .width(172.dp)
+            .clickable { onClick() },
+        color = if (isDefault) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = preset.displayName,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isDefault) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = preset.description,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                lineHeight = 14.sp
+            )
+        }
     }
 }

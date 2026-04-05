@@ -34,11 +34,12 @@ private val SimpleLightColorScheme = lightColorScheme(
 @Composable
 fun HeptaTheme(
     zenTheme: ZenTheme = ZenTheme.OBSIDIAN,
+    customColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
     darkTheme: Boolean = zenTheme != ZenTheme.ARCTIC && zenTheme != ZenTheme.SEPIA,
     dynamicColor: Boolean = false, // Disable dynamic color to enforce our premium Zen themes
     content: @Composable () -> Unit
 ) {
-    val zenColors = getZenColors(zenTheme)
+    val zenColors = getZenColors(zenTheme, customColor)
     val colorScheme = zenColors.colorScheme
     
     val view = LocalView.current

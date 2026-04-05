@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.DayOfWeek
@@ -21,7 +23,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
-
+import kotlinx.coroutines.flow.collect
+import com.zincstate.hepta.data.local.MilestoneEntity
+import com.zincstate.hepta.domain.model.Milestone
 import com.zincstate.hepta.ui.theme.ZenTheme
 
 data class HomeUiState(
@@ -37,6 +41,9 @@ data class HomeUiState(
     val isLoading: Boolean = true,
     val isDarkMode: Boolean = true,
     val currentZenTheme: ZenTheme = ZenTheme.OBSIDIAN,
+    val customThemeColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
+    val milestones: List<com.zincstate.hepta.domain.model.Milestone> = emptyList(),
+    val selectedCalendarMonth: java.time.YearMonth = java.time.YearMonth.now(),
     val showStats: Boolean = false,
     val completionStats: Map<LocalDate, Float> = emptyMap(),
     val hasCalendarPermission: Boolean = false,
@@ -51,6 +58,7 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val useCases: TaskUseCases,
+    private val database: com.zincstate.hepta.data.local.HeptaDatabase,
     private val shiftTasks: com.zincstate.hepta.domain.usecase.ShiftTasksUseCase,
     private val getCalendarEvents: com.zincstate.hepta.domain.usecase.GetCalendarEventsUseCase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
@@ -185,6 +193,8 @@ class HomeViewModel @Inject constructor(
 
         // Load settings from AppPreferences
         val savedTheme = com.zincstate.hepta.util.AppPreferences.getTheme(context)
+        val customHex = com.zincstate.hepta.util.AppPreferences.getCustomColorHex(context)
+        val customColor = customHex?.let { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(it)) } ?: androidx.compose.ui.graphics.Color.Unspecified
         val vaultEnabled = com.zincstate.hepta.util.AppPreferences.isVaultEnabled(context)
         
         _state.update {
@@ -192,10 +202,29 @@ class HomeViewModel @Inject constructor(
                 datesOfWeek = datesRow,
                 expandedDate = today,
                 currentZenTheme = savedTheme,
+                customThemeColor = customColor,
                 isDarkMode = savedTheme != com.zincstate.hepta.ui.theme.ZenTheme.ARCTIC && savedTheme != com.zincstate.hepta.ui.theme.ZenTheme.SEPIA,
                 isVaultEnabled = vaultEnabled,
                 isVaultAuthenticated = !vaultEnabled // If vault is off, consider authenticated
             )
+        }
+
+        // Collect Milestones reactively based on selected month
+        viewModelScope.launch {
+            _state.map { it.selectedCalendarMonth }.distinctUntilChanged().collect { month ->
+                val monthKey = "${month.year}-${String.format("%02d", month.monthValue)}"
+                database.milestoneDao.getMilestonesForMonth(monthKey).collect { entities: List<MilestoneEntity> ->
+                    _state.update { it.copy(milestones = entities.map { e ->
+                        com.zincstate.hepta.domain.model.Milestone(
+                            id = e.id,
+                            text = e.text,
+                            monthKey = e.monthKey,
+                            isCompleted = e.isCompleted,
+                            lastUpdated = e.lastUpdated
+                        )
+                    }) }
+                }
+            }
         }
 
         // Observe the current week + the "Infinity Inbox" (MAX date)
@@ -265,6 +294,98 @@ class HomeViewModel @Inject constructor(
                 currentZenTheme = theme,
                 isDarkMode = theme != ZenTheme.ARCTIC && theme != ZenTheme.SEPIA
             )
+        }
+    }
+
+    fun onCustomThemeChange(color: androidx.compose.ui.graphics.Color) {
+        val hexString = String.format("#%08X", color.value.toLong() and 0xFFFFFFFFL)
+        com.zincstate.hepta.util.AppPreferences.setCustomColorHex(context, hexString)
+        com.zincstate.hepta.util.AppPreferences.setTheme(context, ZenTheme.CUSTOM)
+        _state.update {
+            it.copy(
+                currentZenTheme = ZenTheme.CUSTOM,
+                customThemeColor = color,
+                isDarkMode = true
+            )
+        }
+    }
+
+    fun applyPreset(presetType: com.zincstate.hepta.domain.model.PresetType) {
+        viewModelScope.launch {
+            val dates = _state.value.datesOfWeek
+            
+            if (presetType == com.zincstate.hepta.domain.model.PresetType.DEFAULT) {
+                // Clear all tasks for the current week
+                val allTasks = _state.value.tasksMap.values.flatten()
+                allTasks.forEach { useCases.deleteTask(it) }
+                return@launch
+            }
+
+            val templates = com.zincstate.hepta.domain.model.PresetTemplates.presets[presetType] ?: return@launch
+            val tasksToInsert = mutableListOf<Task>()
+            
+            dates.forEach { date ->
+                templates.forEachIndexed { index, template ->
+                    tasksToInsert.add(
+                        Task(
+                            text = template.text,
+                            isCompleted = false,
+                            targetDate = date,
+                            lastUpdated = System.currentTimeMillis(),
+                            position = 100 + index, // High position to avoid conflicts
+                            isFocusCompleted = false
+                        )
+                    )
+                }
+            }
+            useCases.upsertTasks(tasksToInsert)
+        }
+    }
+
+    fun onCalendarMonthChange(month: java.time.YearMonth) {
+        _state.update { it.copy(selectedCalendarMonth = month) }
+        // Fetch milestones for the new month
+        viewModelScope.launch {
+            val monthKey = "${month.year}-${String.format("%02d", month.monthValue)}"
+            // I'll need to observe this from the DAO
+            // For now, I'll just trigger a refresh if I had a repository call
+            // Since I'm using MVI, I'll update the state directly via collection
+        }
+    }
+
+    fun addMilestone(text: String) {
+        viewModelScope.launch {
+            val month = _state.value.selectedCalendarMonth
+            val monthKey = "${month.year}-${String.format("%02d", month.monthValue)}"
+            val entity = com.zincstate.hepta.data.local.MilestoneEntity(
+                text = text,
+                monthKey = monthKey
+            )
+            database.milestoneDao.upsertMilestone(entity)
+        }
+    }
+
+    fun toggleMilestone(milestone: com.zincstate.hepta.domain.model.Milestone) {
+        viewModelScope.launch {
+            val entity = com.zincstate.hepta.data.local.MilestoneEntity(
+                id = milestone.id,
+                text = milestone.text,
+                monthKey = milestone.monthKey,
+                isCompleted = !milestone.isCompleted,
+                lastUpdated = System.currentTimeMillis()
+            )
+            database.milestoneDao.upsertMilestone(entity)
+        }
+    }
+
+    fun deleteMilestone(milestone: com.zincstate.hepta.domain.model.Milestone) {
+        viewModelScope.launch {
+            val entity = com.zincstate.hepta.data.local.MilestoneEntity(
+                id = milestone.id,
+                text = milestone.text,
+                monthKey = milestone.monthKey
+            )
+            database.milestoneDao.deleteMilestone(entity)
         }
     }
 

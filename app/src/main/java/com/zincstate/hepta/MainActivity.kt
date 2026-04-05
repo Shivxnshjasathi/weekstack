@@ -1,9 +1,11 @@
 package com.zincstate.hepta
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import com.zincstate.hepta.presentation.home.HomeScreen
 import com.zincstate.hepta.ui.theme.HeptaTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,6 +20,7 @@ import java.util.concurrent.TimeUnit
 import java.util.Calendar
 
 import com.zincstate.hepta.presentation.about.AboutScreen
+import com.zincstate.hepta.presentation.calendar.CalendarScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
+import com.zincstate.hepta.presentation.calendar.CalendarScreen
 import com.zincstate.hepta.util.BiometricHelper
 
 @AndroidEntryPoint
@@ -45,6 +49,7 @@ class MainActivity : FragmentActivity() {
 
     private var needsAuth = false
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -56,7 +61,10 @@ class MainActivity : FragmentActivity() {
             val viewModel: com.zincstate.hepta.presentation.home.HomeViewModel = hiltViewModel()
             val state by viewModel.state.collectAsState()
             
-            HeptaTheme(zenTheme = state.currentZenTheme) {
+            HeptaTheme(
+                zenTheme = state.currentZenTheme,
+                customColor = state.customThemeColor
+            ) {
                 // Vault Gate: If enabled & not authenticated, show lock screen
                 if (state.isVaultEnabled && !state.isVaultAuthenticated) {
                     VaultScreen(
@@ -75,14 +83,28 @@ class MainActivity : FragmentActivity() {
                         when (screen) {
                             "home" -> HomeScreen(
                                 viewModel = viewModel,
-                                onNavigateToAbout = { currentScreen = "about" }
+                                onNavigateToAbout = { currentScreen = "about" },
+                                onNavigateToCalendar = { currentScreen = "calendar" }
                             )
                             "about" -> AboutScreen(
                                 onBack = { currentScreen = "home" },
                                 currentTheme = state.currentZenTheme,
                                 onThemeChange = { viewModel.onThemeChange(it) },
+                                onCustomThemeChange = { viewModel.onCustomThemeChange(it) },
+                                onApplyPreset = { viewModel.applyPreset(it) },
                                 isVaultEnabled = state.isVaultEnabled,
                                 onVaultToggle = { viewModel.toggleVault(it) }
+                            )
+                            "calendar" -> CalendarScreen(
+                                onBack = { currentScreen = "home" },
+                                dates = state.datesOfWeek,
+                                tasksMap = state.tasksMap,
+                                milestones = state.milestones,
+                                selectedMonth = state.selectedCalendarMonth,
+                                onMonthChange = { viewModel.onCalendarMonthChange(it) },
+                                onAddMilestone = { viewModel.addMilestone(it) },
+                                onToggleMilestone = { viewModel.toggleMilestone(it) },
+                                onDeleteMilestone = { viewModel.deleteMilestone(it) }
                             )
                         }
                     }
