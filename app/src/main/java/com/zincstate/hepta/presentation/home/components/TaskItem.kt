@@ -1,5 +1,7 @@
 package com.zincstate.hepta.presentation.home.components
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -11,9 +13,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.filled.Reorder
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,8 +42,10 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskItem(
@@ -50,6 +56,9 @@ fun TaskItem(
     onFocus: () -> Unit,
     onToggleRecurring: () -> Unit,
     onShiftToInbox: () -> Unit,
+    onSetReminder: (Long) -> Unit = {},
+    selectedFocusDuration: Int = 25,
+    onCycleFocusDuration: () -> Unit = {},
     modifier: Modifier = Modifier,
     isDragging: Boolean = false
 ) {
@@ -194,11 +203,43 @@ fun TaskItem(
 
                 // Action Controls
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onFocus) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { onFocus() }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Timer,
                             contentDescription = "Focus",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                            tint = if (task.isFocusCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${selectedFocusDuration}m",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (task.isFocusCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            modifier = Modifier.clickable { onCycleFocusDuration() }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    val context = LocalContext.current
+                    IconButton(onClick = {
+                        val calendar = java.util.Calendar.getInstance()
+                        android.app.TimePickerDialog(context, { _, hour, minute ->
+                            val reminderCalendar = java.util.Calendar.getInstance().apply {
+                                set(java.util.Calendar.HOUR_OF_DAY, hour)
+                                set(java.util.Calendar.MINUTE, minute)
+                                set(java.util.Calendar.SECOND, 0)
+                            }
+                            onSetReminder(reminderCalendar.timeInMillis)
+                        }, calendar.get(java.util.Calendar.HOUR_OF_DAY), calendar.get(java.util.Calendar.MINUTE), false).show()
+                    }) {
+                        Icon(
+                            imageVector = if (task.reminderTime != null) Icons.Default.AccessTime else Icons.Default.NotificationsNone,
+                            contentDescription = "Reminder",
+                            tint = if (task.reminderTime != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                             modifier = Modifier.size(18.dp)
                         )
                     }

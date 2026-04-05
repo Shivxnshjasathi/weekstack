@@ -137,6 +137,7 @@ fun HomeScreen(
                     FocusTimerOverlay(
                         taskName = currentTaskName,
                         remainingSeconds = remainingSeconds,
+                        totalDurationMinutes = state.selectedFocusDuration,
                         onStop = { FocusService.stop(context) }
                     )
                 }
@@ -287,6 +288,9 @@ fun HomeScreen(
                                                     onFocus = { viewModel.startFocusSession(context, task) },
                                                     onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
                                                     onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                                    onSetReminder = { time -> viewModel.setTaskReminder(task, time) },
+                                                    selectedFocusDuration = state.selectedFocusDuration,
+                                                    onCycleFocusDuration = { viewModel.cycleFocusDuration() },
                                                     isDragging = isDragging
                                                 )
                                             }
@@ -387,6 +391,9 @@ fun HomeScreen(
                                     onFocus = { viewModel.startFocusSession(context, task) },
                                     onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
                                     onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                    onSetReminder = { time -> viewModel.setTaskReminder(task, time) },
+                                    selectedFocusDuration = state.selectedFocusDuration,
+                                    onCycleFocusDuration = { viewModel.cycleFocusDuration() },
                                     isDragging = false
                                 )
                             }
@@ -471,6 +478,10 @@ fun HomeScreen(
                     WeeklyStatsSheet(
                         dates = state.datesOfWeek,
                         stats = state.completionStats,
+                        totalCompleted = state.totalCompletedTasks,
+                        totalTasks = state.totalTasks,
+                        deepWorkCount = state.totalDeepWorkCount,
+                        weekProgress = state.weekProgress,
                         onExport = { viewModel.exportTasksToCsv(context) }
                     )
                 }
@@ -483,11 +494,12 @@ fun HomeScreen(
 fun FocusTimerOverlay(
     taskName: String,
     remainingSeconds: Int,
+    totalDurationMinutes: Int,
     onStop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val totalSeconds = 25 * 60f
-    val progress = 1f - (remainingSeconds / totalSeconds)
+    val totalSeconds = totalDurationMinutes * 60f
+    val progress = (remainingSeconds / totalSeconds)
     val minutes = remainingSeconds / 60
     val seconds = remainingSeconds % 60
     val timeStr = "%02d:%02d".format(minutes, seconds)
@@ -557,6 +569,10 @@ fun FocusTimerOverlay(
 fun WeeklyStatsSheet(
     dates: List<LocalDate>,
     stats: Map<LocalDate, Float>,
+    totalCompleted: Int,
+    totalTasks: Int,
+    deepWorkCount: Int,
+    weekProgress: Float,
     onExport: () -> Unit
 ) {
     Column(
@@ -567,19 +583,43 @@ fun WeeklyStatsSheet(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "PRODUCTIVITY",
+            text = "ZEN ANALYTICS",
             style = MaterialTheme.typography.labelLarge,
-            color = Color.Gray,
-            letterSpacing = 2.sp
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            letterSpacing = 4.sp
         )
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Bar Chart
+        // Advanced Metric Nodes
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            InfoNode(
+                label = "EFFICIENCY",
+                value = "${(weekProgress * 100).toInt()}%",
+                modifier = Modifier.weight(1f)
+            )
+            InfoNode(
+                label = "VELOCITY",
+                value = "$totalCompleted/$totalTasks",
+                modifier = Modifier.weight(1f)
+            )
+            InfoNode(
+                label = "DEEP WORK",
+                value = "$deepWorkCount",
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        // Enhanced Bar Chart
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp),
+                .height(180.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
@@ -592,19 +632,19 @@ fun WeeklyStatsSheet(
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(12.dp)
+                            .width(16.dp)
                             .fillMaxHeight(completion.coerceAtLeast(0.01f))
                             .background(
-                                color = if (completion >= 1f) MaterialTheme.colorScheme.onBackground 
-                                        else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                                color = if (completion >= 1f) MaterialTheme.colorScheme.primary 
+                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f + (completion * 0.5f)),
+                                shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
                             )
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = date.dayOfWeek.name.take(1),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
                 }
             }
@@ -616,14 +656,43 @@ fun WeeklyStatsSheet(
             onClick = onExport,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.onBackground,
-                contentColor = MaterialTheme.colorScheme.background
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.Share, contentDescription = null)
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("EXPORT WEEK LOG (CSV)")
+            Text("EXPORT WEEKLY ZEN LOG (CSV)", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+fun InfoNode(label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                fontSize = 8.sp,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

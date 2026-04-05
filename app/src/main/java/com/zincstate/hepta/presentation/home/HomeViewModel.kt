@@ -25,6 +25,7 @@ import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 import kotlinx.coroutines.flow.collect
 import com.zincstate.hepta.data.local.MilestoneEntity
+import com.zincstate.hepta.data.local.MilestoneDao
 import com.zincstate.hepta.domain.model.Milestone
 import com.zincstate.hepta.ui.theme.ZenTheme
 
@@ -52,16 +53,17 @@ data class HomeUiState(
     val totalCompletedTasks: Int = 0,
     val totalTasks: Int = 0,
     val isVaultEnabled: Boolean = false,
-    val isVaultAuthenticated: Boolean = false
+    val isVaultAuthenticated: Boolean = false,
+    val selectedFocusDuration: Int = 25
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val useCases: TaskUseCases,
-    private val database: com.zincstate.hepta.data.local.HeptaDatabase,
+    private val milestoneDao: MilestoneDao,
     private val shiftTasks: com.zincstate.hepta.domain.usecase.ShiftTasksUseCase,
     private val getCalendarEvents: com.zincstate.hepta.domain.usecase.GetCalendarEventsUseCase,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -213,7 +215,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _state.map { it.selectedCalendarMonth }.distinctUntilChanged().collect { month ->
                 val monthKey = "${month.year}-${String.format("%02d", month.monthValue)}"
-                database.milestoneDao.getMilestonesForMonth(monthKey).collect { entities: List<MilestoneEntity> ->
+                milestoneDao.getMilestonesForMonth(monthKey).collect { entities: List<MilestoneEntity> ->
                     _state.update { it.copy(milestones = entities.map { e ->
                         com.zincstate.hepta.domain.model.Milestone(
                             id = e.id,
@@ -361,7 +363,7 @@ class HomeViewModel @Inject constructor(
                 text = text,
                 monthKey = monthKey
             )
-            database.milestoneDao.upsertMilestone(entity)
+            milestoneDao.upsertMilestone(entity)
         }
     }
 
@@ -374,7 +376,7 @@ class HomeViewModel @Inject constructor(
                 isCompleted = !milestone.isCompleted,
                 lastUpdated = System.currentTimeMillis()
             )
-            database.milestoneDao.upsertMilestone(entity)
+            milestoneDao.upsertMilestone(entity)
         }
     }
 
@@ -385,7 +387,7 @@ class HomeViewModel @Inject constructor(
                 text = milestone.text,
                 monthKey = milestone.monthKey
             )
-            database.milestoneDao.deleteMilestone(entity)
+            milestoneDao.deleteMilestone(entity)
         }
     }
 
@@ -485,8 +487,44 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun setTaskReminder(task: Task, timeMillis: Long) {
+        viewModelScope.launch {
+            val updatedTask = task.copy(reminderTime = timeMillis)
+            useCases.updateTask(updatedTask)
+            
+            val intent = Intent(context, ReminderReceiver::class.java).apply {
+                putExtra("task_id", updatedTask.id)
+                putExtra("task_text", updatedTask.text)
+            }
+            
+            val pendingIntent = android.app.PendingIntent.getBroadcast(
+                context,
+                updatedTask.id,
+                intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            
+            val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
+            alarmManager.setExactAndAllowWhileIdle(
+                android.app.AlarmManager.RTC_WAKEUP,
+                timeMillis,
+                pendingIntent
+            )
+        }
+    }
+
+    fun cycleFocusDuration() {
+        val durations = listOf(10, 25, 50, 90)
+        _state.update { 
+            val currentIndex = durations.indexOf(it.selectedFocusDuration)
+            val nextIndex = (currentIndex + 1) % durations.size
+            it.copy(selectedFocusDuration = durations[nextIndex])
+        }
+    }
+
     fun startFocusSession(context: android.content.Context, task: Task) {
-        com.zincstate.hepta.service.FocusService.start(context, task.text)
+        val durationMillis = _state.value.selectedFocusDuration * 60 * 1000L
+        com.zincstate.hepta.service.FocusService.start(context, task.text, durationMillis)
     }
 
     fun updateTaskText(task: Task, newText: String) {

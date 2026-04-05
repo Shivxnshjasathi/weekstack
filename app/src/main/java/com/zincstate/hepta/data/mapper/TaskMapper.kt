@@ -12,7 +12,10 @@ fun TaskEntity.toDomainTask(): Task {
         targetDate = LocalDate.ofEpochDay(targetDateEpochDays),
         lastUpdated = lastUpdated,
         position = position,
-        recurringType = recurringType
+        recurringType = recurringType,
+        isFocusCompleted = isFocusCompleted,
+        isMorningIntention = isMorningIntention,
+        reminderTime = reminderTime
     )
 }
 
@@ -24,6 +27,9 @@ fun Task.toEntity(): TaskEntity {
         targetDateEpochDays = targetDate.toEpochDay(),
         lastUpdated = lastUpdated,
         position = position,
-        recurringType = recurringType
+        recurringType = recurringType,
+        isFocusCompleted = isFocusCompleted,
+        isMorningIntention = isMorningIntention,
+        reminderTime = reminderTime
     )
 }

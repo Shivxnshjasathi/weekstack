@@ -21,6 +21,7 @@ work = "2.10.0"
 glance = "1.1.1"
 hiltExt = "1.2.0"
 biometric = "1.1.0"
+desugar = "2.1.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +61,7 @@ androidx-glance-material3 = { group = "androidx.glance", name = "glance-material
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltExt" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltExt" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,19 +1,17 @@
 package com.zincstate.hepta.di
 
-import android.app.Application
+import android.content.Context
 import androidx.room.Room
 import com.zincstate.hepta.data.local.HeptaDatabase
+import com.zincstate.hepta.data.local.MilestoneDao
+import com.zincstate.hepta.data.local.TaskDao
 import com.zincstate.hepta.data.repository.TaskRepositoryImpl
 import com.zincstate.hepta.domain.repository.TaskRepository
-import com.zincstate.hepta.domain.usecase.AddTask
-import com.zincstate.hepta.domain.usecase.DeleteTask
-import com.zincstate.hepta.domain.usecase.GetTasksForWeek
-import com.zincstate.hepta.domain.usecase.TaskUseCases
-import com.zincstate.hepta.domain.usecase.UpdateTask
-import com.zincstate.hepta.domain.usecase.UpsertTasks
+import com.zincstate.hepta.domain.usecase.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -23,11 +21,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideHeptaDatabase(app: Application): HeptaDatabase {
+    fun provideHeptaDatabase(@ApplicationContext context: Context): HeptaDatabase {
         return Room.databaseBuilder(
-            app,
+            context,
             HeptaDatabase::class.java,
-            "hepta_db_v3"
+            "hepta_db"
         ).fallbackToDestructiveMigration().build()
     }
 
@@ -35,6 +33,12 @@ object AppModule {
     @Singleton
     fun provideTaskRepository(db: HeptaDatabase): TaskRepository {
         return TaskRepositoryImpl(db.taskDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMilestoneDao(db: HeptaDatabase): MilestoneDao {
+        return db.milestoneDao
     }
 
     @Provides
@@ -47,5 +51,17 @@ object AppModule {
             upsertTasks = UpsertTasks(repository),
             deleteTask = DeleteTask(repository)
         )
+    }
+
+    @Provides
+    @Singleton
+    fun provideShiftTasksUseCase(repository: TaskRepository): ShiftTasksUseCase {
+        return ShiftTasksUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetCalendarEventsUseCase(@ApplicationContext context: Context): GetCalendarEventsUseCase {
+        return GetCalendarEventsUseCase(context)
     }
 }
