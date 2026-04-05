@@ -36,7 +36,11 @@ data class HomeUiState(
     val isDarkMode: Boolean = true,
     val showStats: Boolean = false,
     val completionStats: Map<LocalDate, Float> = emptyMap(),
-    val hasCalendarPermission: Boolean = false
+    val hasCalendarPermission: Boolean = false,
+    val weekProgress: Float = 0f,
+    val totalDeepWorkCount: Int = 0,
+    val totalCompletedTasks: Int = 0,
+    val totalTasks: Int = 0
 )
 
 @HiltViewModel
@@ -186,35 +190,51 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun observeTasks(start: LocalDate, end: LocalDate) {
-        // Fetch tasks for the week + Inbox tasks
-        // Since getTasksForWeek is a range, we can fetch from start to MAX to include Inbox
-        useCases.getTasksForWeek(start, INBOX_DATE).onEach { allTasks ->
-            val inbox = allTasks.filter { it.targetDate == INBOX_DATE }
-            val weekTasks = allTasks.filter { it.targetDate != INBOX_DATE }
-            val grouped = weekTasks.filter { !it.isMorningIntention }.groupBy { it.targetDate }
-            val intentions = weekTasks.filter { it.isMorningIntention }.associateBy { it.targetDate }
+        // Query from start of week to MAX date to include the Infinity Inbox
+        useCases.getTasksForWeek(start, INBOX_DATE).onEach { tasks ->
+            // 1. Separate morning intentions
+            val morningIntentions = tasks.filter { it.isMorningIntention }
             
-            val lastUpdated = weekTasks.groupBy { it.targetDate }.mapValues { entry ->
-                entry.value.maxOfOrNull { it.lastUpdated } ?: 0L
-            }
-            val stats = grouped.mapValues { entry ->
-                val dayTasks = entry.value
-                if (dayTasks.isEmpty()) 0f else {
-                    dayTasks.count { it.isCompleted }.toFloat() / dayTasks.size
-                }
-            }
-            _state.update {
+            // 2. Weekly tasks (tasks on actual days this week)
+            val weekRange = _state.value.datesOfWeek
+            val regularTasks = tasks.filter { !it.isMorningIntention && it.targetDate in weekRange }
+            val regularTasksMap = regularTasks.groupBy { it.targetDate }
+            
+            // 3. Infinity Inbox tasks (targetDate == INBOX_DATE)
+            val inboxTasks = tasks.filter { it.targetDate == INBOX_DATE }
+            val intentionsMap = morningIntentions.associateBy { it.targetDate }
+            
+            _state.update { 
                 it.copy(
-                    tasksMap = grouped,
-                    morningIntentionsMap = intentions,
-                    inboxTasks = inbox,
-                    lastUpdatedMap = lastUpdated,
-                    completionStats = stats,
+                    tasksMap = regularTasksMap,
+                    morningIntentionsMap = intentionsMap,
+                    inboxTasks = inboxTasks,
                     isLoading = false
                 )
             }
             calculateDayLoad()
+            calculateWeeklyStats()
         }.launchIn(viewModelScope)
+    }
+
+    private fun calculateWeeklyStats() {
+        val tasksMap = _state.value.tasksMap
+        val allWeeklyTasks = tasksMap.values.flatten()
+        
+        val totalTasks = allWeeklyTasks.size
+        val completedTasks = allWeeklyTasks.count { it.isCompleted }
+        val deepWorkCount = allWeeklyTasks.count { it.isCompleted && it.isFocusCompleted }
+        
+        val progress = if (totalTasks > 0) completedTasks.toFloat() / totalTasks else 0f
+        
+        _state.update {
+            it.copy(
+                weekProgress = progress,
+                totalDeepWorkCount = deepWorkCount,
+                totalCompletedTasks = completedTasks,
+                totalTasks = totalTasks
+            )
+        }
     }
 
     fun updateMorningIntention(date: LocalDate, text: String) {

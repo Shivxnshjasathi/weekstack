@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,7 +55,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
     var draggingTaskId by remember { mutableStateOf<Int?>(null) }
-    var showInbox by remember { mutableStateOf(false) }
     
     // Calendar Permission handling
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -128,10 +128,8 @@ fun HomeScreen(
                             letterSpacing = 2.sp,
                             modifier = Modifier
                                 .clickable { 
-                                    showInbox = true
                                     scope.launch {
-                                        // Scroll to the very bottom item
-                                        listState.animateScrollToItem(state.datesOfWeek.size + 1)
+                                        listState.animateScrollToItem(state.datesOfWeek.size)
                                     }
                                 }
                         )
@@ -153,7 +151,6 @@ fun HomeScreen(
                             item(key = "day_${date.toEpochDay()}") {
                                 val eventTag = state.dayTagsMap[date]
                                 val calendarEvents = state.calendarEventsMap[date] ?: emptyList()
-
                                 val loadFactor = state.dayLoadMap[date] ?: 0f
 
                                 DayHeader(
@@ -169,7 +166,6 @@ fun HomeScreen(
                                     val tomorrow = state.datesOfWeek.getOrNull(index + 1)
                                     val uncompletedTasks = tasksForDay.filter { !it.isCompleted }
 
-                                    // Tasks and Events within this day
                                     Column {
                                         // 0. Quick Actions (Shift to Tomorrow)
                                         if (isExpanded && tomorrow != null && uncompletedTasks.isNotEmpty()) {
@@ -214,9 +210,9 @@ fun HomeScreen(
                                                         var accumulatedOffset = 0f
                                                         detectDragGesturesAfterLongPress(
                                                             onDragStart = { 
-                                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                draggingTaskId = task.id
-                                                                accumulatedOffset = 0f
+                                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                 draggingTaskId = task.id
+                                                                 accumulatedOffset = 0f
                                                             },
                                                             onDragEnd = { draggingTaskId = null },
                                                             onDragCancel = { draggingTaskId = null },
@@ -266,12 +262,103 @@ fun HomeScreen(
                                 }
                             }
                         }
-                        
+
+                        // 4. THE INFINITE SHELF (Analytics + Future Log)
+                        item(key = "infinite_shelf") {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp)
+                            ) {
+                                Spacer(modifier = Modifier.height(64.dp))
+                                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                                Spacer(modifier = Modifier.height(32.dp))
+
+                                // 4a. Zen Weekly Stats
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(horizontalAlignment = Alignment.Start) {
+                                        Text(
+                                            text = "WEEK PROGRESS",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            letterSpacing = 1.sp
+                                        )
+                                        Text(
+                                            text = "${(state.weekProgress * 100).toInt()}%",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "DEEP WORK",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            letterSpacing = 1.sp
+                                        )
+                                        Text(
+                                            text = "${state.totalDeepWorkCount}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "VELOCITY",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            letterSpacing = 1.sp
+                                        )
+                                        Text(
+                                            text = "${state.totalCompletedTasks}/${state.totalTasks}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(64.dp))
+
+                                // 4b. The Infinity Inbox
+                                Text(
+                                    text = "∞ THE INFINITY INBOX",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    letterSpacing = 2.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+
+                        // 4c. Inbox Tasks within the Shelf
+                        if (state.inboxTasks.isNotEmpty()) {
+                            items(
+                                items = state.inboxTasks,
+                                key = { "inbox_shelf_${it.id}" }
+                            ) { task ->
+                                Box(modifier = Modifier.padding(horizontal = 12.dp)) {
+                                    TaskItem(
+                                        task = task,
+                                        onToggle = { viewModel.toggleTask(task) },
+                                        onUpdate = { viewModel.updateTaskText(task, it) },
+                                        onDelete = { viewModel.deleteTask(task) },
+                                        onFocus = { viewModel.startFocusSession(context, task) },
+                                        onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
+                                        onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                        isDragging = false
+                                    )
+                                }
+                            }
+                        }
+
                         item(key = "nav_spacer") {
-                            Spacer(modifier = Modifier.statusBarsPadding().navigationBarsPadding().height(80.dp))
+                            Spacer(modifier = Modifier.navigationBarsPadding().height(120.dp))
                         }
                     }
-                }
+            }
             }
 
             // 3. Bottom Actions Dock (Fixed)
