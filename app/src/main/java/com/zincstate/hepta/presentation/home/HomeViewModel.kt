@@ -25,6 +25,8 @@ import javax.inject.Inject
 data class HomeUiState(
     val datesOfWeek: List<LocalDate> = emptyList(),
     val tasksMap: Map<LocalDate, List<Task>> = emptyMap(),
+    val morningIntentionsMap: Map<LocalDate, Task?> = emptyMap(),
+    val inboxTasks: List<Task> = emptyList(),
     val calendarEventsMap: Map<LocalDate, List<com.zincstate.hepta.domain.model.CalendarEvent>> = emptyMap(),
     val dayTagsMap: Map<LocalDate, String> = emptyMap(),
     val dayLoadMap: Map<LocalDate, Float> = emptyMap(), // Load factor 0.0 - 1.0
@@ -48,6 +50,8 @@ class HomeViewModel @Inject constructor(
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
+    private val INBOX_DATE = LocalDate.MAX
+
     private fun calculateDayLoad() {
         val tasksMap = _state.value.tasksMap
         val calendarEventsMap = _state.value.calendarEventsMap
@@ -68,9 +72,14 @@ class HomeViewModel @Inject constructor(
     
     fun shiftUnfinishedTasks(fromDate: LocalDate, toDate: LocalDate) {
         viewModelScope.launch {
-            val unfinished = _state.value.tasksMap[fromDate]?.filter { !it.isCompleted } ?: return@launch
+            val unfinished = _state.value.tasksMap[fromDate]?.filter { !it.isCompleted && !it.isMorningIntention } ?: return@launch
             shiftTasks(fromDate, toDate, unfinished)
-            // The flow from Room will automatically refresh observeTasks
+        }
+    }
+
+    fun shiftToInbox(task: Task) {
+        viewModelScope.launch {
+            useCases.updateTask(task.copy(targetDate = INBOX_DATE, isCompleted = false))
         }
     }
 
@@ -172,13 +181,20 @@ class HomeViewModel @Inject constructor(
             )
         }
 
+        // Observe the current week + the "Inbox" (MAX date)
         observeTasks(startOfWeek, endOfWeek)
     }
 
     private fun observeTasks(start: LocalDate, end: LocalDate) {
-        useCases.getTasksForWeek(start, end).onEach { tasks ->
-            val grouped = tasks.groupBy { it.targetDate }
-            val lastUpdated = tasks.groupBy { it.targetDate }.mapValues { entry ->
+        // Fetch tasks for the week + Inbox tasks
+        // Since getTasksForWeek is a range, we can fetch from start to MAX to include Inbox
+        useCases.getTasksForWeek(start, INBOX_DATE).onEach { allTasks ->
+            val inbox = allTasks.filter { it.targetDate == INBOX_DATE }
+            val weekTasks = allTasks.filter { it.targetDate != INBOX_DATE }
+            val grouped = weekTasks.filter { !it.isMorningIntention }.groupBy { it.targetDate }
+            val intentions = weekTasks.filter { it.isMorningIntention }.associateBy { it.targetDate }
+            
+            val lastUpdated = weekTasks.groupBy { it.targetDate }.mapValues { entry ->
                 entry.value.maxOfOrNull { it.lastUpdated } ?: 0L
             }
             val stats = grouped.mapValues { entry ->
@@ -190,12 +206,35 @@ class HomeViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     tasksMap = grouped,
+                    morningIntentionsMap = intentions,
+                    inboxTasks = inbox,
                     lastUpdatedMap = lastUpdated,
                     completionStats = stats,
                     isLoading = false
                 )
             }
+            calculateDayLoad()
         }.launchIn(viewModelScope)
+    }
+
+    fun updateMorningIntention(date: LocalDate, text: String) {
+        viewModelScope.launch {
+            val existing = _state.value.morningIntentionsMap[date]
+            if (existing != null) {
+                useCases.updateTask(existing.copy(text = text))
+            } else {
+                // Add new special task with position -1 and isMorningIntention = true
+                val task = Task(
+                    text = text,
+                    isCompleted = false,
+                    targetDate = date,
+                    lastUpdated = System.currentTimeMillis(),
+                    position = -1,
+                    isMorningIntention = true
+                )
+                useCases.upsertTasks(listOf(task))
+            }
+        }
     }
 
     fun toggleDayExpansion(date: LocalDate) {

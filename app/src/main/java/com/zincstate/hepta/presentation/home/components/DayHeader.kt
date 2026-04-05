@@ -82,7 +82,7 @@ fun DayHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Row(verticalAlignment = Alignment.Bottom) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = date.format(dayOfWeekFormatter).uppercase(),
                         style = MaterialTheme.typography.headlineLarge.copy(
@@ -95,12 +95,12 @@ fun DayHeader(
                     if (eventTag != null) {
                         Text(
                             text = " • ${eventTag.uppercase()}",
-                            style = MaterialTheme.typography.labelLarge.copy(
+                            style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Medium,
                                 letterSpacing = 1.sp
                             ),
                             color = textColor.copy(alpha = 0.4f),
-                            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp)
+                            modifier = Modifier.padding(start = 8.dp)
                         )
                     }
                 }

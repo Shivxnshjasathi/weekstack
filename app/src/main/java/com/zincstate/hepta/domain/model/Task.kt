@@ -9,5 +9,7 @@ data class Task(
     val targetDate: LocalDate,
     val lastUpdated: Long,
     val position: Int = 0,
-    val recurringType: Int = 0
+    val recurringType: Int = 0,
+    val isFocusCompleted: Boolean = false,
+    val isMorningIntention: Boolean = false
 )

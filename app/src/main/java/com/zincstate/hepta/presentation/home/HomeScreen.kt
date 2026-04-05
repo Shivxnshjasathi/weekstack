@@ -41,6 +41,7 @@ import com.zincstate.hepta.presentation.home.components.TaskItem
 import com.zincstate.hepta.ui.theme.*
 import java.time.LocalDate
 import com.zincstate.hepta.service.FocusService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -53,6 +54,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
     var draggingTaskId by remember { mutableStateOf<Int?>(null) }
+    var showInbox by remember { mutableStateOf(false) }
     
     // Calendar Permission handling
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -101,24 +103,48 @@ fun HomeScreen(
                     )
                 }
 
+                // 1.5 Header with Inbox Count (Zen - Safe Space)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "HEPTA",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        letterSpacing = 4.sp
+                    )
+                    
+                    if (state.inboxTasks.isNotEmpty()) {
+                        val scope = rememberCoroutineScope()
+                        Text(
+                            text = "FUTURE LOG (${state.inboxTasks.size})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 2.sp,
+                            modifier = Modifier
+                                .clickable { 
+                                    showInbox = true
+                                    scope.launch {
+                                        // Scroll to the very bottom item
+                                        listState.animateScrollToItem(state.datesOfWeek.size + 1)
+                                    }
+                                }
+                        )
+                    }
+                }
+
                 // 2. Task List (Hybrid LazyColumn for Scrolling + Grid look)
                 if (!state.isLoading) {
-                    val mondayColor = headerShades.firstOrNull() ?: MaterialTheme.colorScheme.surface
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
-                        // Top Safe Area Spacer (Matches Monday's Color)
-                        item {
-                            Spacer(
-                                Modifier
-                                    .windowInsetsTopHeight(WindowInsets.statusBars)
-                                    .fillMaxWidth()
-                                    .background(mondayColor)
-                            )
-                        }
-
                         state.datesOfWeek.forEachIndexed { index, date ->
                             val isExpanded = state.expandedDate == date
                             val tasksForDay = state.tasksMap[date] ?: emptyList()
@@ -227,6 +253,7 @@ fun HomeScreen(
                                                     onDelete = { viewModel.deleteTask(task) },
                                                     onFocus = { viewModel.startFocusSession(context, task) },
                                                     onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
+                                                    onShiftToInbox = { viewModel.shiftToInbox(task) },
                                                     isDragging = isDragging
                                                 )
                                             }

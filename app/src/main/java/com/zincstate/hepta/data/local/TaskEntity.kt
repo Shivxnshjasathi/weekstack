@@ -12,5 +12,7 @@ data class TaskEntity(
     val targetDateEpochDays: Long,
     val lastUpdated: Long,
     val position: Int = 0,
-    val recurringType: Int = 0 // 0=None, 1=Daily, 2=Weekly
+    val recurringType: Int = 0, // 0=None, 1=Daily, 2=Weekly
+    val isFocusCompleted: Boolean = false,
+    val isMorningIntention: Boolean = false
 )

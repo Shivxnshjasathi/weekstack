@@ -27,7 +27,7 @@ object AppModule {
         return Room.databaseBuilder(
             app,
             HeptaDatabase::class.java,
-            "weekstack_db"
+            "hepta_db_v3"
         ).fallbackToDestructiveMigration().build()
     }
 

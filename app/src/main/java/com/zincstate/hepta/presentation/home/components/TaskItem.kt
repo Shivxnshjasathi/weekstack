@@ -32,6 +32,11 @@ import androidx.compose.ui.unit.dp
 import com.zincstate.hepta.domain.model.Task
 import com.zincstate.hepta.ui.theme.*
 
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.ui.zIndex
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +48,7 @@ fun TaskItem(
     onDelete: () -> Unit,
     onFocus: () -> Unit,
     onToggleRecurring: () -> Unit,
+    onShiftToInbox: () -> Unit,
     modifier: Modifier = Modifier,
     isDragging: Boolean = false
 ) {
@@ -102,109 +108,103 @@ fun TaskItem(
             }
         }
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
-            val checkboxColor = if (task.isCompleted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground
-            if (!isEditing || textValue.isNotBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Focus Indicator / Checkbox
                 Checkbox(
                     checked = task.isCompleted,
                     onCheckedChange = { 
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onToggle() 
                     },
-                    modifier = Modifier.testTag("task_checkbox_${task.id}"),
                     colors = CheckboxDefaults.colors(
                         checkedColor = if (task.recurringType > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                        uncheckedColor = checkboxColor,
-                        checkmarkColor = MaterialTheme.colorScheme.onBackground
+                        checkmarkColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
-            }
-            
-            Spacer(modifier = Modifier.width(8.dp))
 
-            if (isEditing) {
-                TextField(
-                    value = textValue,
-                    onValueChange = { textValue = it },
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onBackground
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            isEditing = false
-                            if (textValue.isBlank()) {
-                                onDelete()
-                            } else {
-                                onUpdate(textValue)
-                            }
-                            focusManager.clearFocus()
-                        }
-                    ),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    )
-                )
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    focusRequester.requestFocus()
-                }
-            } else {
-                val textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
-                val textColor = if (task.isCompleted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground
-                
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { isEditing = true }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = task.text,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            textDecoration = textDecoration
+                Column(modifier = Modifier.weight(1f)) {
+                    BasicTextField(
+                        value = textValue,
+                        onValueChange = { 
+                            textValue = it
+                            isEditing = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .focusRequester(focusRequester),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                            fontWeight = if (task.isFocusCompleted && task.isCompleted) FontWeight.Bold else FontWeight.Normal
                         ),
-                        color = textColor
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            onUpdate(textValue)
+                            isEditing = false
+                            focusManager.clearFocus()
+                        }),
+                        decorationBox = { innerTextField ->
+                            if (textValue.isEmpty()) {
+                                Text(
+                                    text = "Task name",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                )
+                            }
+                            innerTextField()
+                        }
                     )
+                    
+                    if (task.isFocusCompleted && task.isCompleted) {
+                        Text(
+                            text = "FOCUS SESSION WORK",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
 
-                    if (!task.isCompleted) {
-                        IconButton(
-                            onClick = onFocus,
-                            modifier = Modifier.size(32.dp)
-                        ) {
+                // Action Controls
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onFocus) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = "Focus",
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    if (task.targetDate != java.time.LocalDate.MAX) {
+                        IconButton(onClick = onShiftToInbox) {
                             Icon(
-                                imageVector = Icons.Default.Timer,
-                                contentDescription = "Focus",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                imageVector = Icons.Default.Inbox,
+                                contentDescription = "To Inbox",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                        
-                        IconButton(
-                            onClick = onToggleRecurring,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (task.recurringType > 0) Icons.Default.Sync else Icons.Default.SyncDisabled,
-                                contentDescription = "Recurring",
-                                tint = if (task.recurringType > 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                    }
+
+                    IconButton(onClick = onToggleRecurring) {
+                        Icon(
+                            imageVector = if (task.recurringType > 0) Icons.Default.Sync else Icons.Default.SyncDisabled,
+                            contentDescription = "Recurring",
+                            tint = if (task.recurringType > 0) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
