@@ -86,11 +86,22 @@ fun HomeScreen(
 
                 // 2. Task List (Hybrid LazyColumn for Scrolling + Grid look)
                 if (!state.isLoading) {
+                    val mondayColor = headerShades.firstOrNull() ?: MaterialTheme.colorScheme.surface
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
+                        // Top Safe Area Spacer (Matches Monday's Color)
+                        item {
+                            Spacer(
+                                Modifier
+                                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                                    .fillMaxWidth()
+                                    .background(mondayColor)
+                            )
+                        }
+
                         state.datesOfWeek.forEachIndexed { index, date ->
                             val isExpanded = state.expandedDate == date
                             val tasksForDay = state.tasksMap[date] ?: emptyList()
@@ -102,7 +113,6 @@ fun HomeScreen(
                                     isExpanded = isExpanded,
                                     backgroundColor = headerShades.getOrElse(index) { MaterialTheme.colorScheme.surface },
                                     lastUpdated = lastUpdated,
-                                    isFirstItem = index == 0,
                                     onHeaderClick = { viewModel.toggleDayExpansion(date) },
                                     modifier = Modifier.heightIn(min = if (!isExpanded) baseHeaderHeight else 0.dp)
                                 ) {

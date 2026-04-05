@@ -73,11 +73,7 @@ fun DayHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(
-                    top = if (isFirstItem) 48.dp else (if (isExpanded) 32.dp else 24.dp),
-                    bottom = if (isExpanded) 32.dp else 24.dp
-                ),
+                .padding(horizontal = 24.dp, vertical = if (isExpanded) 32.dp else 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
@@ -89,12 +85,13 @@ fun DayHeader(
                     ),
                     color = textColor
                 )
+                
                 if (isExpanded) {
                     Text(
                         text = date.format(fullDateFormatter),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(top = 8.dp)
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textColor.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }

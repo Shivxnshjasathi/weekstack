@@ -198,7 +198,7 @@ fun TaskItem(
                             Icon(
                                 imageVector = if (task.recurringType > 0) Icons.Default.Sync else Icons.Default.SyncDisabled,
                                 contentDescription = "Recurring",
-                                tint = if (task.recurringType > 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                tint = if (task.recurringType > 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
