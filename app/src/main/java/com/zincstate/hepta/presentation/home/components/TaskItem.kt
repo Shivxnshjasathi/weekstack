@@ -93,16 +93,18 @@ fun TaskItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val checkboxColor = if (task.isCompleted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onBackground
-            Checkbox(
-                checked = task.isCompleted,
-                onCheckedChange = { onToggle() },
-                modifier = Modifier.testTag("task_checkbox_${task.id}"),
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colorScheme.tertiary,
-                    uncheckedColor = checkboxColor,
-                    checkmarkColor = MaterialTheme.colorScheme.onBackground
+            if (!isEditing || textValue.isNotBlank()) {
+                Checkbox(
+                    checked = task.isCompleted,
+                    onCheckedChange = { onToggle() },
+                    modifier = Modifier.testTag("task_checkbox_${task.id}"),
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.tertiary,
+                        uncheckedColor = checkboxColor,
+                        checkmarkColor = MaterialTheme.colorScheme.onBackground
+                    )
                 )
-            )
+            }
             
             Spacer(modifier = Modifier.width(8.dp))
 
@@ -120,7 +122,11 @@ fun TaskItem(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             isEditing = false
-                            onUpdate(textValue)
+                            if (textValue.isBlank()) {
+                                onDelete()
+                            } else {
+                                onUpdate(textValue)
+                            }
                             focusManager.clearFocus()
                         }
                     ),
