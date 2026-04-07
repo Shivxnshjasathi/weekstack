@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -124,8 +126,12 @@ fun HomeScreen(
                 // 1. Persistent Focus Header (Sticky)
                 AnimatedVisibility(
                     visible = isTimerRunning,
-                    enter = slideInVertically() + fadeIn(),
-                    exit = slideOutVertically() + fadeOut()
+                    enter = slideInVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                    ) + fadeIn(),
+                    exit = slideOutVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                    ) + fadeOut()
                 ) {
                     FocusTimerOverlay(
                         taskName = currentTaskName,
@@ -247,7 +253,12 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .animateItem()
+                                            .animateItem(
+                                                placementSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                                    stiffness = Spring.StiffnessMediumLow
+                                                )
+                                            )
                                             .pointerInput(task.id, tasksForDay.size) {
                                                 var accumulatedOffset = 0f
                                                 detectDragGesturesAfterLongPress(
@@ -413,10 +424,22 @@ fun HomeScreen(
             } // End of Column (line 122)
 
             // 3. The Identity Nexus Dock (Glassmorphic)
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            
+            val clickScale by animateFloatAsState(
+                targetValue = if (isPressed) 1.15f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "nexus_click_scale"
+            )
+
             val infiniteTransition = rememberInfiniteTransition(label = "nexus_pulse")
             val pulseScale by infiniteTransition.animateFloat(
                 initialValue = 1f,
-                targetValue = 1.1f,
+                targetValue = 1.05f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(2000, easing = LinearOutSlowInEasing),
                     repeatMode = RepeatMode.Reverse
@@ -436,13 +459,20 @@ fun HomeScreen(
                 // The Lexus Nexus Node (Identity Shortcut)
                 Box(
                     modifier = Modifier
-                        .scale(pulseScale)
+                        .scale(pulseScale * clickScale)
                         .size(52.dp)
                         .background(
                             color = MaterialTheme.colorScheme.primary, // The accent color of the theme
                             shape = RoundedCornerShape(16.dp)
                         )
-                        .clickable { onNavigateToCalendar() },
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = { 
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToCalendar() 
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

@@ -2,9 +2,10 @@ package com.zincstate.hepta.presentation.home.components
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -89,6 +90,10 @@ fun TaskItem(
 
     val dragScale by animateFloatAsState(
         targetValue = if (isDragging) 1.05f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "dragScale"
     )
 
@@ -108,7 +113,7 @@ fun TaskItem(
                     SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                     else -> Color.Transparent
                 },
-                animationSpec = tween(durationMillis = 300),
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                 label = "swipeColor"
             )
             
@@ -137,7 +142,11 @@ fun TaskItem(
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.scale(animateFloatAsState(
-                            if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) 1.3f else 1f,
+                            targetValue = if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) 1.3f else 1f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
                             label = "iconScale"
                         ).value)
                     )

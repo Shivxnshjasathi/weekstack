@@ -3,39 +3,43 @@ package com.zincstate.hepta.presentation.home.components
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.platform.testTag
 import androidx.compose.material3.Text
-import androidx.compose.ui.res.stringResource
-import com.zincstate.hepta.R
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.time.Instant
+import androidx.compose.ui.unit.sp
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+
+private val dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())
+private val fullDateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -52,25 +56,32 @@ fun DayHeader(
     content: @Composable () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
-    val dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())
-    val fullDateFormatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
-    val timeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-
-    val lastUpdatedText = lastUpdated?.let {
-        val instant = Instant.ofEpochMilli(it)
-        val zonedDateTime = instant.atZone(ZoneId.systemDefault())
-        zonedDateTime.format(timeFormatter)
-    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val headerScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "header_press_scale"
+    )
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .testTag("day_header_${date.dayOfWeek.name}")
             .background(backgroundColor)
-            .clickable { 
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onHeaderClick() 
-            }
+            .scale(headerScale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = { 
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onHeaderClick() 
+                }
+            )
     ) {
         // Expandable Header (Taller & Bolder)
         val textColor = if (backgroundColor.red > 0.5f && backgroundColor.green > 0.5f && backgroundColor.blue > 0.5f) Color.Black else Color.White
@@ -116,11 +127,21 @@ fun DayHeader(
             }
         }
 
-        // Expanded Content with Animation
+        // Expanded Content with Physics-based Animation (120Hz feel)
         AnimatedVisibility(
             visible = isExpanded,
-            enter = expandVertically(animationSpec = tween(300)),
-            exit = shrinkVertically(animationSpec = tween(300))
+            enter = expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ),
+            exit = shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
