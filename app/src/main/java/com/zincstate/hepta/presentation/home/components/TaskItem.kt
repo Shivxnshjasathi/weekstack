@@ -104,32 +104,44 @@ fun TaskItem(
             val direction = dismissState.dismissDirection
             val color by animateColorAsState(
                 targetValue = when (direction) {
-                    SwipeToDismissBoxValue.EndToStart -> Color(0xFF8B0000) // Red for delete
-                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) // Theme primary for complete
+                    SwipeToDismissBoxValue.EndToStart -> Color(0xFFE53935) // A more vibrant Material Red
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                     else -> Color.Transparent
                 },
+                animationSpec = tween(durationMillis = 300),
                 label = "swipeColor"
             )
             
             val icon = when (direction) {
                 SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
-                else -> Icons.Default.Check
+                SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Check
+                else -> null
+            }
+
+            val alignment = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                else -> Alignment.Center
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(color)
-                    .padding(horizontal = 24.dp),
-                contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) 
-                    Alignment.CenterStart else Alignment.CenterEnd
+                    .padding(horizontal = 28.dp),
+                contentAlignment = alignment
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.scale(1.2f)
-                )
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.scale(animateFloatAsState(
+                            if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) 1.3f else 1f,
+                            label = "iconScale"
+                        ).value)
+                    )
+                }
             }
         }
     ) {

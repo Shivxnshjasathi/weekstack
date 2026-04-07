@@ -21,6 +21,7 @@ class HomeViewModelTest {
 
     private lateinit var viewModel: HomeViewModel
     private lateinit var useCases: TaskUseCases
+    private lateinit var milestoneDao: com.zincstate.hepta.data.local.MilestoneDao
     private lateinit var shiftTasks: ShiftTasksUseCase
     private lateinit var getCalendarEvents: GetCalendarEventsUseCase
     private lateinit var context: Context
@@ -32,15 +33,19 @@ class HomeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         
         useCases = mockk(relaxed = true)
+        milestoneDao = mockk(relaxed = true)
         shiftTasks = mockk(relaxed = true)
         getCalendarEvents = mockk(relaxed = true)
         context = mockk(relaxed = true)
 
         // Mock the flow of tasks
         every { useCases.getTasksForWeek(any(), any()) } returns flowOf(emptyList())
+        // Mock the flow of milestones
+        every { milestoneDao.getMilestonesForMonth(any()) } returns flowOf(emptyList())
 
         viewModel = HomeViewModel(
             useCases = useCases,
+            milestoneDao = milestoneDao,
             shiftTasks = shiftTasks,
             getCalendarEvents = getCalendarEvents,
             context = context

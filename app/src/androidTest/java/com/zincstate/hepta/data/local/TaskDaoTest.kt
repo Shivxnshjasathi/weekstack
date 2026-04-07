@@ -21,11 +21,11 @@ class TaskDaoTest {
     @Before
     fun setup() {
         // Use an in-memory database for testing
-        database = Room.inMemoryDatabaseFactory(
+        database = Room.inMemoryDatabaseBuilder(
             ApplicationProvider.getApplicationContext(),
             HeptaDatabase::class.java
         ).allowMainThreadQueries().build()
-        dao = database.taskDao()
+        dao = database.taskDao
     }
 
     @After

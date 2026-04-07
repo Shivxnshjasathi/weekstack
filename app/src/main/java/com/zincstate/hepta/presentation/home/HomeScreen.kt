@@ -102,22 +102,15 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(Unit) {
                     val edgeThreshold = 30.dp.toPx()
-                    var isFromEdge = false
                     detectHorizontalDragGestures(
-                        onDragStart = { offset ->
-                            isFromEdge = offset.x < edgeThreshold
-                        },
-                        onDragEnd = {
-                            isFromEdge = false
-                        },
-                        onDragCancel = {
-                            isFromEdge = false
-                        },
                         onHorizontalDrag = { change, dragAmount ->
-                            if (isFromEdge && dragAmount > 20f) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onNavigateToAbout()
-                                change.consume()
+                            // Only trigger edge swipe if the interaction started near the edge
+                            if (change.position.x < edgeThreshold || change.previousPosition.x < edgeThreshold) {
+                                if (dragAmount > 20f) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onNavigateToAbout()
+                                    change.consume()
+                                }
                             }
                         }
                     )
@@ -185,12 +178,14 @@ fun HomeScreen(
                             val isExpanded = state.expandedDate == date
                             val tasksForDay = state.tasksMap[date] ?: emptyList()
                             val lastUpdated = state.lastUpdatedMap[date]
-                            
-                            item(key = "day_${date.toEpochDay()}") {
-                                val eventTag = state.dayTagsMap[date]
-                                val calendarEvents = state.calendarEventsMap[date] ?: emptyList()
-                                val loadFactor = state.dayLoadMap[date] ?: 0f
+                            val eventTag = state.dayTagsMap[date]
+                            val calendarEvents = (state.calendarEventsMap[date] ?: emptyList()).filter { !it.isAllDay }.sortedBy { it.startTime }
+                            val loadFactor = state.dayLoadMap[date] ?: 0f
+                            val tomorrow = state.datesOfWeek.getOrNull(index + 1)
+                            val uncompletedTasks = tasksForDay.filter { !it.isCompleted }
 
+                            // 1. Day Header (always visible)
+                            item(key = "day_${date.toEpochDay()}") {
                                 DayHeader(
                                     date = date,
                                     isExpanded = isExpanded,
@@ -200,106 +195,116 @@ fun HomeScreen(
                                     loadFactor = loadFactor,
                                     onHeaderClick = { viewModel.toggleDayExpansion(date) },
                                     modifier = Modifier.heightIn(min = if (!isExpanded) baseHeaderHeight else 0.dp)
-                                ) {
-                                    val tomorrow = state.datesOfWeek.getOrNull(index + 1)
-                                    val uncompletedTasks = tasksForDay.filter { !it.isCompleted }
+                                ) { }
+                            }
 
-                                    Column {
-                                        // 0. Quick Actions (Shift to Tomorrow)
-                                        if (isExpanded && tomorrow != null && uncompletedTasks.isNotEmpty()) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 24.dp, vertical = 8.dp)
-                                                    .clickable { 
-                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        viewModel.shiftUnfinishedTasks(date, tomorrow) 
+                            // 2. Expanded Content (Individual Items for performance)
+                            if (isExpanded) {
+                                // 2a. Quick Actions
+                                if (tomorrow != null && uncompletedTasks.isNotEmpty()) {
+                                    item(key = "shift_${date.toEpochDay()}") {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp, vertical = 8.dp)
+                                                .clickable { 
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    viewModel.shiftUnfinishedTasks(date, tomorrow) 
+                                                },
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowForward,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "SHIFT ${uncompletedTasks.size} TO ${tomorrow.dayOfWeek.name}",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                                letterSpacing = 1.sp
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 2b. Calendar Events
+                                items(
+                                    items = calendarEvents,
+                                    key = { "event_${date.toEpochDay()}_${it.id}" }
+                                ) { event ->
+                                    CalendarEventItem(event = event)
+                                }
+
+                                // 2c. Tasks
+                                itemsIndexed(
+                                    items = tasksForDay.sortedBy { it.position },
+                                    key = { _, task -> task.id }
+                                ) { taskIndex, task ->
+                                    val isDragging = draggingTaskId == task.id
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .animateItem()
+                                            .pointerInput(task.id, tasksForDay.size) {
+                                                var accumulatedOffset = 0f
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = { 
+                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                         draggingTaskId = task.id
+                                                         accumulatedOffset = 0f
                                                     },
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.ArrowForward,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "SHIFT ${uncompletedTasks.size} TO ${tomorrow.dayOfWeek.name}",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                                    letterSpacing = 1.sp
-                                                )
-                                            }
-                                        }
-                                        // 1. Official Calendar Events
-                                        calendarEvents.filter { !it.isAllDay }.sortedBy { it.startTime }.forEach { event ->
-                                            CalendarEventItem(event = event)
-                                        }
+                                                    onDragEnd = { draggingTaskId = null },
+                                                    onDragCancel = { draggingTaskId = null },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        accumulatedOffset += dragAmount.y
+                                                        
+                                                        val currentItemInfo = listState.layoutInfo.visibleItemsInfo
+                                                            .find { it.key == "day_${date.toEpochDay()}" } ?: return@detectDragGesturesAfterLongPress
+                                                        val globalY = currentItemInfo.offset + accumulatedOffset
+                                                        
+                                                        val targetItem = listState.layoutInfo.visibleItemsInfo
+                                                            .find { globalY > it.offset && globalY < (it.offset + it.size) }
 
-                                        // 2. HEPTA Manual Tasks
-                                        tasksForDay.sortedBy { it.position }.forEachIndexed { taskIndex, task ->
-                                            val isDragging = draggingTaskId == task.id
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .animateItem()
-                                                    .pointerInput(task.id, tasksForDay.size) {
-                                                        var accumulatedOffset = 0f
-                                                        detectDragGesturesAfterLongPress(
-                                                            onDragStart = { 
-                                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                                 draggingTaskId = task.id
-                                                                 accumulatedOffset = 0f
-                                                            },
-                                                            onDragEnd = { draggingTaskId = null },
-                                                            onDragCancel = { draggingTaskId = null },
-                                                            onDrag = { change, dragAmount ->
-                                                                change.consume()
-                                                                accumulatedOffset += dragAmount.y
-                                                                
-                                                                val currentItemInfo = listState.layoutInfo.visibleItemsInfo
-                                                                    .find { it.key == "day_${date.toEpochDay()}" } ?: return@detectDragGesturesAfterLongPress
-                                                                val globalY = currentItemInfo.offset + accumulatedOffset
-                                                                
-                                                                val targetItem = listState.layoutInfo.visibleItemsInfo
-                                                                    .find { globalY > it.offset && globalY < (it.offset + it.size) }
-
-                                                                if (targetItem != null && targetItem.key != "day_${date.toEpochDay()}") {
-                                                                    val targetKey = targetItem.key.toString()
-                                                                    if (targetKey.startsWith("day_")) {
-                                                                        val targetDateEpoch = targetKey.removePrefix("day_").toLongOrNull()
-                                                                        if (targetDateEpoch != null) {
-                                                                            val targetDate = LocalDate.ofEpochDay(targetDateEpoch)
-                                                                            viewModel.onMoveTaskToDate(date, taskIndex, targetDate, 0)
-                                                                            accumulatedOffset = 0f
-                                                                        }
-                                                                    }
+                                                        if (targetItem != null && targetItem.key != "day_${date.toEpochDay()}") {
+                                                            val targetKey = targetItem.key.toString()
+                                                            if (targetKey.startsWith("day_")) {
+                                                                val targetDateEpoch = targetKey.removePrefix("day_").toLongOrNull()
+                                                                if (targetDateEpoch != null) {
+                                                                    val targetDate = LocalDate.ofEpochDay(targetDateEpoch)
+                                                                    viewModel.onMoveTaskToDate(date, taskIndex, targetDate, 0)
+                                                                    accumulatedOffset = 0f
                                                                 }
                                                             }
-                                                        )
+                                                        }
                                                     }
-                                            ) {
-                                                TaskItem(
-                                                    task = task,
-                                                    onToggle = { viewModel.toggleTask(task) },
-                                                    onUpdate = { newText -> viewModel.updateTaskText(task, newText) },
-                                                    onDelete = { viewModel.deleteTask(task) },
-                                                    onFocus = { viewModel.startFocusSession(context, task) },
-                                                    onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
-                                                    onShiftToInbox = { viewModel.shiftToInbox(task) },
-                                                    onSetReminder = { time -> viewModel.setTaskReminder(task, time) },
-                                                    selectedFocusDuration = state.selectedFocusDuration,
-                                                    onCycleFocusDuration = { viewModel.cycleFocusDuration() },
-                                                    isDragging = isDragging
                                                 )
                                             }
-                                        }
-
-                                        AddTaskInput(
-                                            onAddTask = { text -> viewModel.addTask(text, date) }
+                                    ) {
+                                        TaskItem(
+                                            task = task,
+                                            onToggle = { viewModel.toggleTask(task) },
+                                            onUpdate = { newText -> viewModel.updateTaskText(task, newText) },
+                                            onDelete = { viewModel.deleteTask(task) },
+                                            onFocus = { viewModel.startFocusSession(context, task) },
+                                            onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
+                                            onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                            onSetReminder = { time -> viewModel.setTaskReminder(task, time) },
+                                            selectedFocusDuration = state.selectedFocusDuration,
+                                            onCycleFocusDuration = { viewModel.cycleFocusDuration() },
+                                            isDragging = isDragging
                                         )
                                     }
+                                }
+
+                                // 2d. Add Input
+                                item(key = "add_${date.toEpochDay()}") {
+                                    AddTaskInput(
+                                        onAddTask = { text -> viewModel.addTask(text, date) }
+                                    )
                                 }
                             }
                         }

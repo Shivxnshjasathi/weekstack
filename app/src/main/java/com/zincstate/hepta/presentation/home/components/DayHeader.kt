@@ -49,7 +49,7 @@ fun DayHeader(
     eventTag: String? = null,
     loadFactor: Float = 0.0f,
     isFirstItem: Boolean = false,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     val dayOfWeekFormatter = DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())
