@@ -2,7 +2,6 @@ package com.zincstate.hepta
 
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
@@ -42,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
-import com.zincstate.hepta.presentation.calendar.CalendarScreen
 import com.zincstate.hepta.util.BiometricHelper
 
 @AndroidEntryPoint
