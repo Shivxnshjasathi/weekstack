@@ -12,5 +12,7 @@ data class Task(
     val recurringType: Int = 0,
     val isFocusCompleted: Boolean = false,
     val isMorningIntention: Boolean = false,
-    val reminderTime: Long? = null
+    val reminderTime: Long? = null,
+    val notes: String? = null,
+    val subtasks: List<Subtask> = emptyList()
 )

@@ -11,7 +11,7 @@ import com.zincstate.hepta.data.local.MilestoneDao
         TaskEntity::class, 
         MilestoneEntity::class
     ], 
-    version = 5, 
+    version = 6, 
     exportSchema = false
 )
 abstract class HeptaDatabase : RoomDatabase() {

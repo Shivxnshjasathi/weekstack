@@ -441,7 +441,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onMoveTaskToDate(fromDate: LocalDate, fromIndex: Int, toDate: LocalDate, toIndex: Int) {
-        val fromTasks = _state.value.tasksMap[fromDate]?.toMutableList() ?: return
+        val fromTasks = _state.value.tasksMap[fromDate]?.sortedBy { it.position }?.toMutableList() ?: return
         if (fromIndex !in fromTasks.indices) return
 
         val movedTask = fromTasks.removeAt(fromIndex)
@@ -457,7 +457,7 @@ class HomeViewModel @Inject constructor(
                 task.copy(position = index, targetDate = toDate)
             }
         } else {
-            val toTasks = _state.value.tasksMap[toDate]?.toMutableList() ?: mutableListOf()
+            val toTasks = _state.value.tasksMap[toDate]?.sortedBy { it.position }?.toMutableList() ?: mutableListOf()
             val targetIndex = toIndex.coerceIn(0, toTasks.size)
             toTasks.add(targetIndex, movedTask)
             toTasks.mapIndexed { index, task ->
@@ -474,6 +474,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun shiftTaskToTomorrow(task: Task) {
+        if (task.targetDate == INBOX_DATE) return
+        viewModelScope.launch {
+            val toDate = task.targetDate.plusDays(1)
+            val toTasks = _state.value.tasksMap[toDate] ?: emptyList()
+            val maxPosition = toTasks.maxOfOrNull { it.position } ?: -1
+            useCases.updateTask(task.copy(targetDate = toDate, position = maxPosition + 1))
+        }
+    }
+
     fun toggleTask(task: Task) {
         viewModelScope.launch {
             useCases.updateTask(task.copy(isCompleted = !task.isCompleted))
@@ -483,7 +493,54 @@ class HomeViewModel @Inject constructor(
     fun toggleTaskRecurrence(task: Task) {
         val newType = if (task.recurringType == 0) 1 else 0
         viewModelScope.launch {
-            useCases.updateTask(task.copy(recurringType = newType))
+            if (newType == 1) {
+                val datesOfWeek = _state.value.datesOfWeek
+                val newTasks = mutableListOf<Task>()
+                
+                // Update the original task
+                newTasks.add(task.copy(recurringType = newType))
+                
+                // Copy to all days of the current week (except the original day, which is already handled)
+                for (futureDate in datesOfWeek) {
+                    if (futureDate == task.targetDate) continue
+                    
+                    val existingTasks = _state.value.tasksMap[futureDate] ?: emptyList()
+                    if (existingTasks.none { it.text == task.text }) {
+                        newTasks.add(
+                            Task(
+                                text = task.text,
+                                isCompleted = false,
+                                targetDate = futureDate,
+                                lastUpdated = System.currentTimeMillis(),
+                                position = (existingTasks.maxOfOrNull { it.position } ?: -1) + 1,
+                                recurringType = newType
+                            )
+                        )
+                    }
+                }
+                useCases.upsertTasks(newTasks)
+            } else {
+                // Keep this task, but remove the recurring flag
+                useCases.updateTask(task.copy(recurringType = newType))
+                
+                // Find and delete all OTHER uncompleted copies in the week
+                val datesOfWeek = _state.value.datesOfWeek
+                datesOfWeek.forEach { date ->
+                    if (date != task.targetDate) {
+                        val existingTasks = _state.value.tasksMap[date] ?: emptyList()
+                        val match = existingTasks.find { it.text == task.text && it.recurringType > 0 && !it.isCompleted }
+                        if (match != null) {
+                            useCases.deleteTask(match)
+                        }
+                    }
+                }
+                
+                // Also check the Inbox just in case there's an uncompleted copy there
+                val inboxMatch = _state.value.inboxTasks.find { it.text == task.text && it.recurringType > 0 && !it.isCompleted }
+                if (inboxMatch != null && task.targetDate != INBOX_DATE) {
+                    useCases.deleteTask(inboxMatch)
+                }
+            }
         }
     }
 
@@ -555,6 +612,17 @@ class HomeViewModel @Inject constructor(
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             useCases.deleteTask(task)
+        }
+    }
+    fun updateTaskNotes(task: Task, notes: String?) {
+        viewModelScope.launch {
+            useCases.updateTask(task.copy(notes = notes))
+        }
+    }
+
+    fun updateTaskSubtasks(task: Task, subtasks: List<com.zincstate.hepta.domain.model.Subtask>) {
+        viewModelScope.launch {
+            useCases.updateTask(task.copy(subtasks = subtasks))
         }
     }
 }

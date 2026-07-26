@@ -30,7 +30,7 @@ class HeptaApp : Application(), Configuration.Provider {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Daily Reminders"
             val descriptionText = "Gentle notifications for your daily tasks"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel("daily_reminders", name, importance).apply {
                 description = descriptionText
             }

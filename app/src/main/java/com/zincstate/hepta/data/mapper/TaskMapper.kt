@@ -2,7 +2,12 @@ package com.zincstate.hepta.data.mapper
 
 import com.zincstate.hepta.data.local.TaskEntity
 import com.zincstate.hepta.domain.model.Task
+import com.zincstate.hepta.domain.model.Subtask
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import java.time.LocalDate
+
+private val gson = Gson()
 
 fun TaskEntity.toDomainTask(): Task {
     return Task(
@@ -15,7 +20,14 @@ fun TaskEntity.toDomainTask(): Task {
         recurringType = recurringType,
         isFocusCompleted = isFocusCompleted,
         isMorningIntention = isMorningIntention,
-        reminderTime = reminderTime
+        reminderTime = reminderTime,
+        notes = notes,
+        subtasks = try {
+            val listType = object : TypeToken<List<Subtask>>() {}.type
+            gson.fromJson(subtasks, listType) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
     )
 }
 
@@ -30,6 +42,8 @@ fun Task.toEntity(): TaskEntity {
         recurringType = recurringType,
         isFocusCompleted = isFocusCompleted,
         isMorningIntention = isMorningIntention,
-        reminderTime = reminderTime
+        reminderTime = reminderTime,
+        notes = notes,
+        subtasks = gson.toJson(subtasks)
     )
 }

@@ -23,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -64,17 +65,24 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     var draggingTaskId by remember { mutableStateOf<Int?>(null) }
     
-    // Calendar Permission handling
+    // Permission handling
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        viewModel.updatePermissionStatus()
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[android.Manifest.permission.READ_CALENDAR] == true) {
+            viewModel.updatePermissionStatus()
+        }
     }
     
     // Check permission on start
     LaunchedEffect(Unit) {
+        val perms = mutableListOf(android.Manifest.permission.READ_CALENDAR)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            perms.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        
         if (!state.hasCalendarPermission) {
-            permissionLauncher.launch(android.Manifest.permission.READ_CALENDAR)
+            permissionLauncher.launch(perms.toTypedArray())
         } else {
             viewModel.updatePermissionStatus()
         }
@@ -206,36 +214,6 @@ fun HomeScreen(
 
                             // 2. Expanded Content (Individual Items for performance)
                             if (isExpanded) {
-                                // 2a. Quick Actions
-                                if (tomorrow != null && uncompletedTasks.isNotEmpty()) {
-                                    item(key = "shift_${date.toEpochDay()}") {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 24.dp, vertical = 8.dp)
-                                                .clickable { 
-                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    viewModel.shiftUnfinishedTasks(date, tomorrow) 
-                                                },
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowForward,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "SHIFT ${uncompletedTasks.size} TO ${tomorrow.dayOfWeek.name}",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                                letterSpacing = 1.sp
-                                            )
-                                        }
-                                    }
-                                }
-
                                 // 2b. Calendar Events
                                 items(
                                     items = calendarEvents,
@@ -253,6 +231,7 @@ fun HomeScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .zIndex(if (isDragging) 1f else 0f)
                                             .animateItem(
                                                 placementSpec = spring(
                                                     dampingRatio = Spring.DampingRatioNoBouncy,
@@ -281,13 +260,25 @@ fun HomeScreen(
                                                             .find { globalY > it.offset && globalY < (it.offset + it.size) }
 
                                                         if (targetItem != null && targetItem.key != "day_${date.toEpochDay()}") {
-                                                            val targetKey = targetItem.key.toString()
-                                                            if (targetKey.startsWith("day_")) {
-                                                                val targetDateEpoch = targetKey.removePrefix("day_").toLongOrNull()
-                                                                if (targetDateEpoch != null) {
-                                                                    val targetDate = LocalDate.ofEpochDay(targetDateEpoch)
-                                                                    viewModel.onMoveTaskToDate(date, taskIndex, targetDate, 0)
-                                                                    accumulatedOffset = 0f
+                                                            if (targetItem.key is Int) {
+                                                                val targetTaskId = targetItem.key as Int
+                                                                if (targetTaskId != task.id) {
+                                                                    val sortedTasks = tasksForDay.sortedBy { it.position }
+                                                                    val targetIndex = sortedTasks.indexOfFirst { it.id == targetTaskId }
+                                                                    if (targetIndex != -1) {
+                                                                        viewModel.onMoveTask(date, taskIndex, targetIndex)
+                                                                        accumulatedOffset = 0f
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                val targetKey = targetItem.key.toString()
+                                                                if (targetKey.startsWith("day_")) {
+                                                                    val targetDateEpoch = targetKey.removePrefix("day_").toLongOrNull()
+                                                                    if (targetDateEpoch != null) {
+                                                                        val targetDate = LocalDate.ofEpochDay(targetDateEpoch)
+                                                                        viewModel.onMoveTaskToDate(date, taskIndex, targetDate, 0)
+                                                                        accumulatedOffset = 0f
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -303,6 +294,9 @@ fun HomeScreen(
                                             onFocus = { viewModel.startFocusSession(context, task) },
                                             onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
                                             onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                            onShiftToTomorrow = { viewModel.shiftTaskToTomorrow(task) },
+                                            onUpdateNotes = { notes -> viewModel.updateTaskNotes(task, notes) },
+                                            onUpdateSubtasks = { subtasks -> viewModel.updateTaskSubtasks(task, subtasks) },
                                             onSetReminder = { time -> viewModel.setTaskReminder(task, time) },
                                             selectedFocusDuration = state.selectedFocusDuration,
                                             onCycleFocusDuration = { viewModel.cycleFocusDuration() },
@@ -327,57 +321,10 @@ fun HomeScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 24.dp)
                             ) {
-                                Spacer(modifier = Modifier.height(64.dp))
-                                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                                 Spacer(modifier = Modifier.height(32.dp))
 
-                                // 4a. Zen Weekly Stats
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(horizontalAlignment = Alignment.Start) {
-                                        Text(
-                                            text = "WEEK PROGRESS",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                            letterSpacing = 1.sp
-                                        )
-                                        Text(
-                                            text = "${(state.weekProgress * 100).toInt()}%",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(
-                                            text = "DEEP WORK",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                            letterSpacing = 1.sp
-                                        )
-                                        Text(
-                                            text = "${state.totalDeepWorkCount}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = "VELOCITY",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                            letterSpacing = 1.sp
-                                        )
-                                        Text(
-                                            text = "${state.totalCompletedTasks}/${state.totalTasks}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(64.dp))
+                                // 4a. Future Log / Empty State Spacer
+                                Spacer(modifier = Modifier.height(32.dp))
 
                             }
                         }
@@ -407,6 +354,9 @@ fun HomeScreen(
                                     onFocus = { viewModel.startFocusSession(context, task) },
                                     onToggleRecurring = { viewModel.toggleTaskRecurrence(task) },
                                     onShiftToInbox = { viewModel.shiftToInbox(task) },
+                                    onShiftToTomorrow = { viewModel.shiftTaskToTomorrow(task) },
+                                    onUpdateNotes = { notes -> viewModel.updateTaskNotes(task, notes) },
+                                    onUpdateSubtasks = { subtasks -> viewModel.updateTaskSubtasks(task, subtasks) },
                                     onSetReminder = { time -> viewModel.setTaskReminder(task, time) },
                                     selectedFocusDuration = state.selectedFocusDuration,
                                     onCycleFocusDuration = { viewModel.cycleFocusDuration() },
@@ -483,22 +433,26 @@ fun HomeScreen(
                     )
                 }
 
-                IconButton(
-                    onClick = { viewModel.toggleStats() },
+                Row(
                     modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                            shape = CircleShape
-                        ),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = Color.Transparent
-                    )
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                        .clickable { viewModel.toggleStats() }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.BarChart,
                         contentDescription = "Zen Analytics",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "ANALYTICS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = 1.sp
                     )
                 }
             }
@@ -658,19 +612,34 @@ fun WeeklyStatsSheet(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
+            
+            // Add a launch effect to trigger animation after composition
+            var showBars by remember { androidx.compose.runtime.mutableStateOf(false) }
+            LaunchedEffect(Unit) { showBars = true }
+            
             dates.forEach { date ->
-                val completion = stats[date] ?: 0f
+                val targetCompletion = if (showBars) (stats[date] ?: 0f) else 0f
+                val completion by animateFloatAsState(
+                    targetValue = targetCompletion,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    label = "bar_anim"
+                )
+                
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom,
                     modifier = Modifier.fillMaxHeight()
                 ) {
+                    val minHeight = if (totalTasks == 0) 0.02f else 0.05f
                     Box(
                         modifier = Modifier
                             .width(16.dp)
-                            .fillMaxHeight(completion.coerceAtLeast(0.01f))
+                            .fillMaxHeight(completion.coerceAtLeast(minHeight))
                             .background(
-                                color = if (completion >= 1f) MaterialTheme.colorScheme.primary 
+                                color = if (completion >= 1f && totalTasks > 0) MaterialTheme.colorScheme.primary 
                                         else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f + (completion * 0.5f)),
                                 shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
                             )

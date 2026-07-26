@@ -105,4 +105,7 @@ dependencies {
 
     // Biometric (Zen Vault)
     implementation(libs.androidx.biometric)
+
+    // Gson for TypeConverters
+    implementation("com.google.code.gson:gson:2.10.1")
 }

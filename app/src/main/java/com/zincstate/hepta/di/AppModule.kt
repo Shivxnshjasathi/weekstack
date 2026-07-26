@@ -14,6 +14,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -22,11 +24,21 @@ object AppModule {
     @Provides
     @Singleton
     fun provideHeptaDatabase(@ApplicationContext context: Context): HeptaDatabase {
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN notes TEXT")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN subtasks TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
+        
         return Room.databaseBuilder(
             context,
             HeptaDatabase::class.java,
             "hepta_db"
-        ).fallbackToDestructiveMigration().build()
+        )
+        .addMigrations(MIGRATION_5_6)
+        .fallbackToDestructiveMigration()
+        .build()
     }
 
     @Provides
