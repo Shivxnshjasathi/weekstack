@@ -8,6 +8,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE targetDateEpochDays BETWEEN :startEpoch AND :endEpoch ORDER BY position ASC, lastUpdated DESC")
     fun getTasksForDateRange(startEpoch: Long, endEpoch: Long): Flow<List<TaskEntity>>
 
+    @Query("SELECT * FROM tasks WHERE targetDateEpochDays BETWEEN :startEpoch AND :endEpoch ORDER BY position ASC, lastUpdated DESC")
+    suspend fun getTasksForDateRangeSync(startEpoch: Long, endEpoch: Long): List<TaskEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity)
 

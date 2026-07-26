@@ -13,6 +13,14 @@ class GetTasksForWeek(
     }
 }
 
+class GetTasksForWeekSync(
+    private val repository: TaskRepository
+) {
+    suspend operator fun invoke(startDate: LocalDate, endDate: LocalDate): List<Task> {
+        return repository.getTasksForDateRangeSync(startDate, endDate)
+    }
+}
+
 class AddTask(
     private val repository: TaskRepository
 ) {
@@ -50,6 +58,7 @@ class DeleteTask(
 
 data class TaskUseCases(
     val getTasksForWeek: GetTasksForWeek,
+    val getTasksForWeekSync: GetTasksForWeekSync,
     val addTask: AddTask,
     val updateTask: UpdateTask,
     val upsertTasks: UpsertTasks,

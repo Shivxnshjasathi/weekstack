@@ -258,7 +258,16 @@ class HomeViewModel @Inject constructor(
             }
             calculateDayLoad()
             calculateWeeklyStats()
+            updateWidget()
         }.launchIn(viewModelScope)
+    }
+
+    private fun updateWidget() {
+        try {
+            com.zincstate.hepta.widget.TodayWidget.forceUpdateAll(context)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun calculateWeeklyStats() {

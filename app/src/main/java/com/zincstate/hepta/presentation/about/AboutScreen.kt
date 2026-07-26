@@ -35,7 +35,8 @@ fun AboutScreen(
     onCustomThemeChange: (Color) -> Unit = {},
     onApplyPreset: (com.zincstate.hepta.domain.model.PresetType) -> Unit = {},
     isVaultEnabled: Boolean = false,
-    onVaultToggle: (Boolean) -> Unit = {}
+    onVaultToggle: (Boolean) -> Unit = {},
+    onNavigateToPrivacyPolicy: () -> Unit = {}
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     var showColorPicker by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -328,18 +329,7 @@ fun AboutScreen(
                 }
             }
  
-            // 4. Upcoming Features
-            item {
-                SectionHeader("UPCOMING")
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    FeatureItem("AI Daily Briefing", "A morning summary of your day's schedule and suggested intentions.")
-                    FeatureItem("Smart Widgets", "Interactive home screen widgets to complete tasks without opening the app.")
-                    FeatureItem("Focus Soundscapes", "Integrated lo-fi and white noise for deep work sessions.")
-                    FeatureItem("Subtasks & Notes", "Ability to break down complex tasks into manageable steps.")
-                    FeatureItem("Cloud Backup", "Encrypted synchronization across all your Zincstate devices.")
-                }
-            }
+
 
             // 5. The Engine (Tech Stack)
             item {
@@ -354,6 +344,42 @@ fun AboutScreen(
                         SkillChip(tech)
                     }
                 }
+            }
+            // 2c. Legal & Compliance
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+                SectionHeader("LEGAL & COMPLIANCE")
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToPrivacyPolicy() }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PrivacyTip,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Privacy Policy",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Data collection, calendar usage & policies",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
 

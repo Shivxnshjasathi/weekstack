@@ -58,6 +58,7 @@ object AppModule {
     fun provideTaskUseCases(repository: TaskRepository): TaskUseCases {
         return TaskUseCases(
             getTasksForWeek = GetTasksForWeek(repository),
+            getTasksForWeekSync = GetTasksForWeekSync(repository),
             addTask = AddTask(repository),
             updateTask = UpdateTask(repository),
             upsertTasks = UpsertTasks(repository),

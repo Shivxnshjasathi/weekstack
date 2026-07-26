@@ -2,6 +2,8 @@ package com.zincstate.hepta.presentation.home
 
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
+import com.zincstate.hepta.domain.model.Subtask
+import com.zincstate.hepta.domain.model.Task
 import com.zincstate.hepta.domain.usecase.GetCalendarEventsUseCase
 import com.zincstate.hepta.domain.usecase.ShiftTasksUseCase
 import com.zincstate.hepta.domain.usecase.TaskUseCases
@@ -79,5 +81,61 @@ class HomeViewModelTest {
         val state = viewModel.state.value
         assertThat(state.weekProgress).isEqualTo(0f)
         assertThat(state.totalCompletedTasks).isEqualTo(0)
+    }
+
+    @Test
+    fun updateTaskNotesUpdatesTask() = runTest {
+        val task = Task(text = "Sample", lastUpdated = 0, targetDate = LocalDate.now(), id = 1, isCompleted = false, position = 0)
+        viewModel.updateTaskNotes(task, "New notes here")
+        
+        coVerify { 
+            useCases.updateTask(match { it.id == 1 && it.notes == "New notes here" })
+        }
+    }
+
+    @Test
+    fun updateTaskSubtasksUpdatesTask() = runTest {
+        val task = Task(text = "Sample", lastUpdated = 0, targetDate = LocalDate.now(), id = 1, isCompleted = false, position = 0)
+        val subtasks = listOf(Subtask(text = "Sub 1", isCompleted = true))
+        
+        viewModel.updateTaskSubtasks(task, subtasks)
+        
+        coVerify { 
+            useCases.updateTask(match { it.id == 1 && it.subtasks.size == 1 && it.subtasks[0].text == "Sub 1" })
+        }
+    }
+
+    @Test
+    fun toggleTaskCompletesTask() = runTest {
+        val task = Task(text = "Sample", lastUpdated = 0, targetDate = LocalDate.now(), id = 1, isCompleted = false, position = 0)
+        viewModel.toggleTask(task)
+        
+        coVerify { 
+            useCases.updateTask(match { it.id == 1 && it.isCompleted == true })
+        }
+    }
+
+    @Test
+    fun shiftTaskToTomorrowShiftsDate() = runTest {
+        val today = LocalDate.now()
+        val tomorrow = today.plusDays(1)
+        val task = Task(text = "Sample", lastUpdated = 0, targetDate = today, id = 1, isCompleted = false, position = 0)
+        
+        viewModel.shiftTaskToTomorrow(task)
+        
+        coVerify { 
+            useCases.updateTask(match { it.id == 1 && it.targetDate == tomorrow })
+        }
+    }
+
+    @Test
+    fun shiftToInboxNullsDate() = runTest {
+        val task = Task(text = "Sample", lastUpdated = 0, targetDate = LocalDate.now(), id = 1, isCompleted = false, position = 0)
+        
+        viewModel.shiftToInbox(task)
+        
+        coVerify { 
+            useCases.updateTask(match { it.id == 1 && it.targetDate == LocalDate.MAX })
+        }
     }
 }

@@ -86,4 +86,59 @@ class TaskDaoTest {
         val updatedTask = dao.getTasksForDateRange(date, date).first()[0]
         assertThat(updatedTask.isCompleted).isTrue()
     }
+
+    @Test
+    fun insertAndRetrieveNotesAndSubtasks() = runBlocking {
+        val date = LocalDate.now().toEpochDay()
+        val jsonSubtasks = "[{\"title\":\"Sub1\",\"isCompleted\":true}]"
+        
+        val task = TaskEntity(
+            text = "Complex Task",
+            isCompleted = false,
+            targetDateEpochDays = date,
+            lastUpdated = System.currentTimeMillis(),
+            notes = "These are some notes",
+            subtasks = jsonSubtasks
+        )
+        dao.insertTask(task)
+
+        val savedTask = dao.getTasksForDateRange(date, date).first()[0]
+        
+        assertThat(savedTask.notes).isEqualTo("These are some notes")
+        assertThat(savedTask.subtasks).isEqualTo(jsonSubtasks)
+    }
+
+    @Test
+    fun upsertTasksInsertsOrUpdatesMultiple() = runBlocking {
+        val date = LocalDate.now().toEpochDay()
+        val task1 = TaskEntity(
+            text = "Task 1",
+            isCompleted = false,
+            targetDateEpochDays = date,
+            lastUpdated = System.currentTimeMillis()
+        )
+        dao.insertTask(task1)
+        
+        val savedTask1 = dao.getTasksForDateRange(date, date).first()[0]
+        
+        val task2 = TaskEntity(
+            text = "Task 2",
+            isCompleted = false,
+            targetDateEpochDays = date,
+            lastUpdated = System.currentTimeMillis()
+        )
+        
+        val updatedTask1 = savedTask1.copy(isCompleted = true)
+        
+        dao.upsertTasks(listOf(updatedTask1, task2))
+        
+        val allTasks = dao.getTasksForDateRange(date, date).first()
+        assertThat(allTasks).hasSize(2)
+        
+        val fetched1 = allTasks.find { it.text == "Task 1" }
+        val fetched2 = allTasks.find { it.text == "Task 2" }
+        
+        assertThat(fetched1?.isCompleted).isTrue()
+        assertThat(fetched2?.isCompleted).isFalse()
+    }
 }

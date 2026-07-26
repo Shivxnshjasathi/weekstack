@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 import java.util.Calendar
 
 import com.zincstate.hepta.presentation.about.AboutScreen
+import com.zincstate.hepta.presentation.about.PrivacyPolicyScreen
 import com.zincstate.hepta.presentation.calendar.CalendarScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -93,7 +94,11 @@ class MainActivity : FragmentActivity() {
                                 onCustomThemeChange = { viewModel.onCustomThemeChange(it) },
                                 onApplyPreset = { viewModel.applyPreset(it) },
                                 isVaultEnabled = state.isVaultEnabled,
-                                onVaultToggle = { viewModel.toggleVault(it) }
+                                onVaultToggle = { viewModel.toggleVault(it) },
+                                onNavigateToPrivacyPolicy = { currentScreen = "privacy" }
+                            )
+                            "privacy" -> PrivacyPolicyScreen(
+                                onBack = { currentScreen = "about" }
                             )
                             "calendar" -> CalendarScreen(
                                 onBack = { currentScreen = "home" },

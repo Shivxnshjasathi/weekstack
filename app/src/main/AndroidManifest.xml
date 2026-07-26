@@ -32,6 +32,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widget.QuickAddActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:launchMode="singleInstance" />
+
         <service
             android:name=".service.FocusService"
             android:enabled="true"

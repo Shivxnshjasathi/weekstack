@@ -20,6 +20,11 @@ class TaskRepositoryImpl(
             }
     }
 
+    override suspend fun getTasksForDateRangeSync(startDate: LocalDate, endDate: LocalDate): List<Task> {
+        return dao.getTasksForDateRangeSync(startDate.toEpochDay(), endDate.toEpochDay())
+            .map { it.toDomainTask() }
+    }
+
     override suspend fun insertTask(task: Task) {
         dao.insertTask(task.toEntity())
     }
