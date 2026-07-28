@@ -75,8 +75,8 @@ fun TaskItem(
     isDragging: Boolean = false
 ) {
     var isEditing by remember { mutableStateOf(false) }
-    var textValue by remember { mutableStateOf(task.text) }
-    var notesValue by remember { mutableStateOf(task.notes ?: "") }
+    var textValue by remember(task.text) { mutableStateOf(task.text) }
+    var notesValue by remember(task.notes) { mutableStateOf(task.notes ?: "") }
     var isExpanded by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current

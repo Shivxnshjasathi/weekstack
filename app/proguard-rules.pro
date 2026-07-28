@@ -19,3 +19,22 @@
 
 # General Compose
 -keep class androidx.compose.ui.platform.AndroidComposeView { *; }
+
+# Gson & Domain Models (Prevents JSON serialization issues with TypeConverters)
+-keep class com.zincstate.hepta.domain.model.** { *; }
+
+# Gson generic rules
+-keep class com.google.gson.** { *; }
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+
+# Keep necessary attributes for Compose and Kotlin reflection (Critical for stability inference)
+-keepattributes RuntimeVisible*Annotations,Metadata,Signature,InnerClasses,EnclosingMethod
+
+# Keep data class equality methods
+-keepclassmembers class * {
+    boolean equals(java.lang.Object);
+    int hashCode();
+    java.lang.String toString();
+}

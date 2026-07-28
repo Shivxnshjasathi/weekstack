@@ -14,10 +14,13 @@ android {
         applicationId = "com.zincstate.hepta"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 4
+        versionName = "4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Reduces app size by stripping out all non-English strings from imported libraries
+        resourceConfigurations += setOf("en")
     }
 
     buildTypes {
@@ -28,6 +31,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Includes debug symbols in the AAB so Play Console can read native crashes
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
     compileOptions {

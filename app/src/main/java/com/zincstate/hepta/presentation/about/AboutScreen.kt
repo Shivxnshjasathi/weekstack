@@ -345,9 +345,44 @@ fun AboutScreen(
                     }
                 }
             }
+            // Cross-Platform Availability
+            item {
+                SectionHeader("CROSS-PLATFORM")
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { uriHandler.openUri("https://weekstack-web.vercel.app/") }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Hepta for Web & iOS",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Access your intentions on any device",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            }
+            
             // 2c. Legal & Compliance
             item {
-                Spacer(modifier = Modifier.height(32.dp))
                 SectionHeader("LEGAL & COMPLIANCE")
                 Spacer(modifier = Modifier.height(16.dp))
                 

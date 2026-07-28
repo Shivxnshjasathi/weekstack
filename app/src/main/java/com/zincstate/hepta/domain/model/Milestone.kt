@@ -1,5 +1,8 @@
 package com.zincstate.hepta.domain.model
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class Milestone(
     val id: Int = 0,
     val text: String,

@@ -1,7 +1,9 @@
 package com.zincstate.hepta.domain.model
 
+import androidx.compose.runtime.Immutable
 import java.time.LocalDate
 
+@Immutable
 data class Task(
     val id: Int = 0,
     val text: String,
