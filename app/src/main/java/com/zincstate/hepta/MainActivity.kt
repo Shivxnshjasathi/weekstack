@@ -21,6 +21,7 @@ import java.util.Calendar
 import com.zincstate.hepta.presentation.about.AboutScreen
 import com.zincstate.hepta.presentation.about.PrivacyPolicyScreen
 import com.zincstate.hepta.presentation.calendar.CalendarScreen
+import com.zincstate.hepta.presentation.notes.NotesScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,9 +43,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import com.zincstate.hepta.util.BiometricHelper
+import java.time.LocalDate
+import javax.inject.Inject
+import com.zincstate.hepta.data.local.NoteDao
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    @Inject
+    lateinit var noteDao: NoteDao
 
     private var needsAuth = false
 
@@ -83,7 +90,8 @@ class MainActivity : FragmentActivity() {
                             "home" -> HomeScreen(
                                 viewModel = viewModel,
                                 onNavigateToAbout = { currentScreen = "about" },
-                                onNavigateToCalendar = { currentScreen = "calendar" }
+                                onNavigateToCalendar = { currentScreen = "calendar" },
+                                onNavigateToNotes = { currentScreen = "notes" }
                             )
                             "about" -> AboutScreen(
                                 onBack = { currentScreen = "home" },
@@ -108,6 +116,12 @@ class MainActivity : FragmentActivity() {
                                 onAddMilestone = { viewModel.addMilestone(it) },
                                 onToggleMilestone = { viewModel.toggleMilestone(it) },
                                 onDeleteMilestone = { viewModel.deleteMilestone(it) }
+                            )
+                            "notes" -> NotesScreen(
+                                onBack = { currentScreen = "home" },
+                                onNavigateToCalendar = { currentScreen = "calendar" },
+                                noteDao = noteDao,
+                                todayTasks = state.tasksMap[LocalDate.now()] ?: emptyList()
                             )
                         }
                     }

@@ -29,6 +29,7 @@ import com.zincstate.hepta.data.local.MilestoneDao
 import com.zincstate.hepta.domain.model.Milestone
 import com.zincstate.hepta.ui.theme.ZenTheme
 
+@androidx.compose.runtime.Stable
 data class HomeUiState(
     val datesOfWeek: List<LocalDate> = emptyList(),
     val tasksMap: Map<LocalDate, List<Task>> = emptyMap(),

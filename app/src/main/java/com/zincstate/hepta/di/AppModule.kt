@@ -30,13 +30,26 @@ object AppModule {
                 db.execSQL("ALTER TABLE tasks ADD COLUMN subtasks TEXT NOT NULL DEFAULT '[]'")
             }
         }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS notes (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "dateEpochDays INTEGER NOT NULL, " +
+                    "category TEXT NOT NULL, " +
+                    "content TEXT NOT NULL DEFAULT '', " +
+                    "lastUpdated INTEGER NOT NULL DEFAULT 0)"
+                )
+            }
+        }
         
         return Room.databaseBuilder(
             context,
             HeptaDatabase::class.java,
             "hepta_db"
         )
-        .addMigrations(MIGRATION_5_6)
+        .addMigrations(MIGRATION_5_6, MIGRATION_6_7)
         .fallbackToDestructiveMigration()
         .build()
     }
@@ -51,6 +64,12 @@ object AppModule {
     @Singleton
     fun provideMilestoneDao(db: HeptaDatabase): MilestoneDao {
         return db.milestoneDao
+    }
+
+    @Provides
+    @Singleton
+    fun provideNoteDao(db: HeptaDatabase): com.zincstate.hepta.data.local.NoteDao {
+        return db.noteDao
     }
 
     @Provides

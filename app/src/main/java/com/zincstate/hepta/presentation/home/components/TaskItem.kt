@@ -2,6 +2,7 @@ package com.zincstate.hepta.presentation.home.components
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -78,6 +79,7 @@ fun TaskItem(
     var textValue by remember(task.text) { mutableStateOf(task.text) }
     var notesValue by remember(task.notes) { mutableStateOf(task.notes ?: "") }
     var isExpanded by remember { mutableStateOf(false) }
+    var showDropdown by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
@@ -177,18 +179,29 @@ fun TaskItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Focus Indicator / Checkbox
-                Checkbox(
-                    checked = task.isCompleted,
-                    onCheckedChange = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onToggle() 
-                    },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = if (task.recurringType > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                        checkmarkColor = MaterialTheme.colorScheme.onSurface
-                    )
+                // Animated Checkbox Scale
+                val checkboxScale by animateFloatAsState(
+                    targetValue = if (task.isCompleted) 1.1f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioHighBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "checkbox_scale"
                 )
+
+                Box(modifier = Modifier.scale(checkboxScale)) {
+                    Checkbox(
+                        checked = task.isCompleted,
+                        onCheckedChange = { 
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onToggle() 
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = if (task.recurringType > 0) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            checkmarkColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                }
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicTextField(
@@ -264,11 +277,10 @@ fun TaskItem(
 
                 // Removed expand chevron here
                 // Action Controls
-                var expanded by remember { mutableStateOf(false) }
                 val context = LocalContext.current
                 
                 Box {
-                    IconButton(onClick = { expanded = true }) {
+                    IconButton(onClick = { showDropdown = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More Options",
@@ -277,15 +289,15 @@ fun TaskItem(
                     }
                     
                     DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
+                        expanded = showDropdown,
+                        onDismissRequest = { showDropdown = false },
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                     ) {
                         DropdownMenuItem(
                             text = { Text(if (isExpanded) "Collapse Notes" else "Expand Notes", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 isExpanded = !isExpanded
-                                expanded = false
+                                showDropdown = false
                             },
                             leadingIcon = {
                                 Icon(
@@ -299,7 +311,7 @@ fun TaskItem(
                         DropdownMenuItem(
                             text = { Text("Focus ($selectedFocusDuration m)", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
-                                expanded = false
+                                showDropdown = false
                                 onFocus()
                             },
                             leadingIcon = {
@@ -315,7 +327,7 @@ fun TaskItem(
                             text = { Text("Change Duration", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
                                 onCycleFocusDuration()
-                                expanded = false 
+                                showDropdown = false 
                             },
                             leadingIcon = {
                                 Icon(
@@ -329,7 +341,7 @@ fun TaskItem(
                         DropdownMenuItem(
                             text = { Text(if (task.reminderTime != null) "Update Reminder" else "Set Reminder", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
-                                expanded = false
+                                showDropdown = false
                                 val calendar = java.util.Calendar.getInstance()
                                 android.app.TimePickerDialog(context, { _, hour, minute ->
                                     val reminderCalendar = java.util.Calendar.getInstance().apply {
@@ -358,7 +370,7 @@ fun TaskItem(
                             DropdownMenuItem(
                                 text = { Text("Move to Inbox", color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = { 
-                                    expanded = false
+                                    showDropdown = false
                                     onShiftToInbox()
                                 },
                                 leadingIcon = {
@@ -375,7 +387,7 @@ fun TaskItem(
                             DropdownMenuItem(
                                 text = { Text("Shift to Tomorrow", color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = { 
-                                    expanded = false
+                                    showDropdown = false
                                     onShiftToTomorrow()
                                 },
                                 leadingIcon = {
@@ -391,7 +403,7 @@ fun TaskItem(
                         DropdownMenuItem(
                             text = { Text(if (task.recurringType > 0) "Disable Recurring" else "Make Recurring", color = MaterialTheme.colorScheme.onSurface) },
                             onClick = { 
-                                expanded = false
+                                showDropdown = false
                                 onToggleRecurring()
                             },
                             leadingIcon = {
@@ -407,7 +419,11 @@ fun TaskItem(
             }
 
             // Expanded Content (Notes & Subtasks)
-            if (isExpanded) {
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(spring(stiffness = Spring.StiffnessMediumLow)),
+                exit = fadeOut() + shrinkVertically(spring(stiffness = Spring.StiffnessMediumLow))
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

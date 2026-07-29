@@ -57,7 +57,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToAbout: () -> Unit = {},
-    onNavigateToCalendar: () -> Unit = {}
+    onNavigateToCalendar: () -> Unit = {},
+    onNavigateToNotes: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
@@ -149,7 +150,6 @@ fun HomeScreen(
                     )
                 }
 
-                // 1.5 Header with Identity Signature
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -233,8 +233,10 @@ fun HomeScreen(
                                             .fillMaxWidth()
                                             .zIndex(if (isDragging) 1f else 0f)
                                             .animateItem(
+                                                fadeInSpec = tween(400),
+                                                fadeOutSpec = tween(400),
                                                 placementSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
                                                     stiffness = Spring.StiffnessMediumLow
                                                 )
                                             )
@@ -380,7 +382,7 @@ fun HomeScreen(
             val clickScale by animateFloatAsState(
                 targetValue = if (isPressed) 1.15f else 1f,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    dampingRatio = Spring.DampingRatioHighBouncy,
                     stiffness = Spring.StiffnessMedium
                 ),
                 label = "nexus_click_scale"
@@ -420,7 +422,7 @@ fun HomeScreen(
                             indication = null,
                             onClick = { 
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onNavigateToCalendar() 
+                                onNavigateToNotes() 
                             }
                         ),
                     contentAlignment = Alignment.Center
