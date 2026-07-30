@@ -14,36 +14,22 @@ val Poppins = FontFamily(
     Font(R.font.poppins_bold, FontWeight.Bold)
 )
 
+val baseline = Typography()
+
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = Poppins,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = Poppins,
-        fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 2.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = Poppins,
-        fontWeight = FontWeight.Medium,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = Poppins,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = Poppins,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp
-    )
+    displayLarge = baseline.displayLarge.copy(fontFamily = Poppins),
+    displayMedium = baseline.displayMedium.copy(fontFamily = Poppins),
+    displaySmall = baseline.displaySmall.copy(fontFamily = Poppins),
+    headlineLarge = baseline.headlineLarge.copy(fontFamily = Poppins, fontWeight = FontWeight.Bold),
+    headlineMedium = baseline.headlineMedium.copy(fontFamily = Poppins, fontWeight = FontWeight.Bold, letterSpacing = 2.sp),
+    headlineSmall = baseline.headlineSmall.copy(fontFamily = Poppins),
+    titleLarge = baseline.titleLarge.copy(fontFamily = Poppins, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+    titleMedium = baseline.titleMedium.copy(fontFamily = Poppins),
+    titleSmall = baseline.titleSmall.copy(fontFamily = Poppins),
+    bodyLarge = baseline.bodyLarge.copy(fontFamily = Poppins, letterSpacing = 0.5.sp),
+    bodyMedium = baseline.bodyMedium.copy(fontFamily = Poppins),
+    bodySmall = baseline.bodySmall.copy(fontFamily = Poppins),
+    labelLarge = baseline.labelLarge.copy(fontFamily = Poppins),
+    labelMedium = baseline.labelMedium.copy(fontFamily = Poppins),
+    labelSmall = baseline.labelSmall.copy(fontFamily = Poppins, fontWeight = FontWeight.Medium)
 )

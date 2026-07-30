@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 
 @Composable
 fun AddTaskInput(
@@ -33,6 +34,7 @@ fun AddTaskInput(
 ) {
     var textValue by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     Row(modifier = modifier
         .fillMaxWidth()
@@ -60,6 +62,7 @@ fun AddTaskInput(
                     if (textValue.isNotBlank()) {
                         onAddTask(textValue)
                         textValue = ""
+                        focusManager.clearFocus()
                     }
                 }
             ),

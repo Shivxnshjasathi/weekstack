@@ -14,8 +14,8 @@ android {
         applicationId = "com.zincstate.hepta"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "6.0"
+        versionCode = 7
+        versionName = "7.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -31,10 +31,17 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
             // Includes debug symbols in the AAB so Play Console can read native crashes
             ndk {
                 debugSymbolLevel = "FULL"
             }
+        }
+        create("debugRelease") {
+            initWith(getByName("release"))
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
+            applicationIdSuffix = ".debugrelease"
         }
     }
     compileOptions {

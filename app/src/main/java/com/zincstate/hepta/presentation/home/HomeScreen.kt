@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -106,8 +107,12 @@ fun HomeScreen(
     }
     
     HeptaTheme(zenTheme = state.currentZenTheme) {
+        val configuration = LocalConfiguration.current
+        val totalHeight = configuration.screenHeightDp.dp
+        // Calculate a base height that fills 1/7th of the screen (adjusting for spacers)
+        val baseHeaderHeight = (totalHeight - 80.dp) / 7.2f
 
-        BoxWithConstraints(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
@@ -127,10 +132,6 @@ fun HomeScreen(
                     )
                 }
         ) {
-            val totalHeight = maxHeight
-            // Calculate a base height that fills 1/7th of the screen (adjusting for spacers)
-            val baseHeaderHeight = (totalHeight - 80.dp) / 7.2f 
-
             Column(modifier = Modifier.fillMaxSize()) {
                 // 1. Persistent Focus Header (Sticky)
                 AnimatedVisibility(
@@ -232,15 +233,7 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .zIndex(if (isDragging) 1f else 0f)
-                                            .animateItem(
-                                                fadeInSpec = tween(400),
-                                                fadeOutSpec = tween(400),
-                                                placementSpec = spring(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                    stiffness = Spring.StiffnessMediumLow
-                                                )
-                                            )
-                                            .pointerInput(task.id, tasksForDay.size) {
+                                            .pointerInput(task.id) {
                                                 var accumulatedOffset = 0f
                                                 detectDragGesturesAfterLongPress(
                                                     onDragStart = { 
@@ -290,6 +283,8 @@ fun HomeScreen(
                                     ) {
                                         TaskItem(
                                             task = task,
+                                            lastUpdated = task.lastUpdated,
+                                            isCompleted = task.isCompleted,
                                             onToggle = { viewModel.toggleTask(task) },
                                             onUpdate = { newText -> viewModel.updateTaskText(task, newText) },
                                             onDelete = { viewModel.deleteTask(task) },
@@ -307,7 +302,12 @@ fun HomeScreen(
                                     }
                                 }
 
-                                // 2d. Add Input
+                                // 2d. Spacer to prevent touch overlap
+                                item(key = "spacer_${date.toEpochDay()}") {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
+
+                                // 2e. Add Input
                                 item(key = "add_${date.toEpochDay()}") {
                                     AddTaskInput(
                                         onAddTask = { text -> viewModel.addTask(text, date) }
@@ -350,6 +350,8 @@ fun HomeScreen(
                             ) { task ->
                                 TaskItem(
                                     task = task,
+                                    lastUpdated = task.lastUpdated,
+                                    isCompleted = task.isCompleted,
                                     onToggle = { viewModel.toggleTask(task) },
                                     onUpdate = { viewModel.updateTaskText(task, it) },
                                     onDelete = { viewModel.deleteTask(task) },

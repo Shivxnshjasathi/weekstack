@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.zincstate.hepta.domain.model.Task
 import com.zincstate.hepta.ui.theme.*
+import android.util.Log
 
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.filled.Check
@@ -60,6 +61,8 @@ import androidx.compose.ui.zIndex
 @Composable
 fun TaskItem(
     task: Task,
+    lastUpdated: Long,
+    isCompleted: Boolean,
     onToggle: () -> Unit,
     onUpdate: (String) -> Unit,
     onDelete: () -> Unit,
@@ -181,7 +184,7 @@ fun TaskItem(
             ) {
                 // Animated Checkbox Scale
                 val checkboxScale by animateFloatAsState(
-                    targetValue = if (task.isCompleted) 1.1f else 1f,
+                    targetValue = if (isCompleted) 1.1f else 1f,
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioHighBouncy,
                         stiffness = Spring.StiffnessMedium
@@ -191,8 +194,9 @@ fun TaskItem(
 
                 Box(modifier = Modifier.scale(checkboxScale)) {
                     Checkbox(
-                        checked = task.isCompleted,
+                        checked = isCompleted,
                         onCheckedChange = { 
+                            Log.d("TaskDebug", "Checkbox clicked for task id=${task.id}, text='${task.text}'")
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onToggle() 
                         },
@@ -216,8 +220,8 @@ fun TaskItem(
                             .focusRequester(focusRequester),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onSurface,
-                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                            fontWeight = if (task.isFocusCompleted && task.isCompleted) FontWeight.Bold else FontWeight.Normal
+                            textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                            fontWeight = if (task.isFocusCompleted && isCompleted) FontWeight.Bold else FontWeight.Normal
                         ),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -238,7 +242,7 @@ fun TaskItem(
                         }
                     )
                     
-                    if (task.isFocusCompleted && task.isCompleted) {
+                    if (task.isFocusCompleted && isCompleted) {
                         Text(
                             text = "FOCUS SESSION WORK",
                             style = MaterialTheme.typography.labelSmall,

@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalDate
+import android.util.Log
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
@@ -237,6 +238,10 @@ class HomeViewModel @Inject constructor(
     private fun observeTasks(start: LocalDate, end: LocalDate) {
         // Query from start of week to MAX date to include the Infinity Inbox
         useCases.getTasksForWeek(start, INBOX_DATE).onEach { tasks ->
+            Log.d("TaskDebug", "observeTasks: emitted ${tasks.size} tasks")
+            tasks.forEach {
+                Log.d("TaskDebug", "observeTasks item: id=${it.id}, text='${it.text}'")
+            }
             // 1. Separate morning intentions
             val morningIntentions = tasks.filter { it.isMorningIntention }
             
@@ -439,9 +444,11 @@ class HomeViewModel @Inject constructor(
     }
 
     fun addTask(text: String, date: LocalDate) {
+        Log.d("TaskDebug", "addTask called: text='$text', date=$date")
         viewModelScope.launch {
             val currentTasks = _state.value.tasksMap[date] ?: emptyList()
             val maxPosition = currentTasks.maxOfOrNull { it.position } ?: -1
+            Log.d("TaskDebug", "addTask executing insert with maxPosition=$maxPosition")
             useCases.addTask(text, date, maxPosition + 1)
         }
     }
@@ -495,8 +502,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun toggleTask(task: Task) {
+        Log.d("TaskDebug", "toggleTask called: id=${task.id}, text='${task.text}', isCompleted=${task.isCompleted}")
         viewModelScope.launch {
             useCases.updateTask(task.copy(isCompleted = !task.isCompleted))
+            Log.d("TaskDebug", "toggleTask update triggered for id=${task.id}")
         }
     }
 

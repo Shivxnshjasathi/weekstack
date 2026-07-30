@@ -17,11 +17,31 @@
     private final android.os.Handler handler;
 }
 
-# General Compose
--keep class androidx.compose.ui.platform.AndroidComposeView { *; }
+# Jetpack Compose Stability & Metadata
+# Prevents R8 from stripping the information Compose needs to track state
+-keepattributes *Annotation*, InnerClasses, EnclosingMethod, Signature, SourceFile, LineNumberTable
+-keepattributes RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations, RuntimeVisibleParameterAnnotations, RuntimeInvisibleParameterAnnotations
+-keep class kotlin.Metadata { *; }
 
-# Gson & Domain Models (Prevents JSON serialization issues with TypeConverters)
+# Prevent R8 from stripping/mangling Compose-generated parameters (like $composer)
+-keepclassmembers class * {
+    @androidx.compose.runtime.Composable *;
+}
+
+# Keep the Snapshot system and state observation classes intact
+-keep class androidx.compose.runtime.ParcelableSnapshotMutationPolicy { *; }
+-keep class androidx.compose.runtime.SnapshotMutationPolicy { *; }
+-keep class androidx.compose.runtime.snapshots.SnapshotKt { *; }
+
+# Domain Models & Data Class Equality
+# This ensures that 'Task.equals()' works perfectly for Strong Skipping
 -keep class com.zincstate.hepta.domain.model.** { *; }
+-keepclassmembers class com.zincstate.hepta.domain.model.** {
+    <fields>;
+    boolean equals(java.lang.Object);
+    int hashCode();
+    java.lang.String toString();
+}
 
 # Gson generic rules
 -keep class com.google.gson.** { *; }
@@ -29,12 +49,5 @@
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 
-# Keep necessary attributes for Compose and Kotlin reflection (Critical for stability inference)
--keepattributes RuntimeVisible*Annotations,Metadata,Signature,InnerClasses,EnclosingMethod
-
-# Keep data class equality methods
--keepclassmembers class * {
-    boolean equals(java.lang.Object);
-    int hashCode();
-    java.lang.String toString();
-}
+# UI State & Compose Stability (Prevents recomposition skipping in release builds)
+-keep class com.zincstate.hepta.presentation.** { *; }
