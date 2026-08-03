@@ -33,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -86,6 +87,7 @@ fun TaskItem(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
+    val view = androidx.compose.ui.platform.LocalView.current
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
@@ -179,7 +181,12 @@ fun TaskItem(
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggle()
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Animated Checkbox Scale
@@ -192,12 +199,27 @@ fun TaskItem(
                     label = "checkbox_scale"
                 )
 
-                Box(modifier = Modifier.scale(checkboxScale)) {
+                // Animated Text Dimming
+                val textAlpha by animateFloatAsState(
+                    targetValue = if (isCompleted) 0.3f else 1f,
+                    animationSpec = androidx.compose.animation.core.tween(
+                        durationMillis = 300, 
+                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                    ),
+                    label = "text_alpha"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .scale(checkboxScale)
+                        .padding(end = 8.dp)
+                ) {
                     Checkbox(
                         checked = isCompleted,
                         onCheckedChange = { 
                             Log.d("TaskDebug", "Checkbox clicked for task id=${task.id}, text='${task.text}'")
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
                             onToggle() 
                         },
                         colors = CheckboxDefaults.colors(
@@ -219,8 +241,8 @@ fun TaskItem(
                             .padding(vertical = 8.dp)
                             .focusRequester(focusRequester),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textDecoration = if (isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha),
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.None,
                             fontWeight = if (task.isFocusCompleted && isCompleted) FontWeight.Bold else FontWeight.Normal
                         ),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -434,24 +456,30 @@ fun TaskItem(
                         .padding(start = 48.dp, end = 16.dp, bottom = 16.dp, top = 8.dp)
                 ) {
                     // Notes Section
-                    OutlinedTextField(
-                        value = notesValue,
-                        onValueChange = { 
-                            notesValue = it
-                            onUpdateNotes(it.takeIf { s -> s.isNotBlank() })
-                        },
-                        placeholder = { Text("Add notes...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), style = MaterialTheme.typography.bodySmall) },
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        ),
-                        minLines = 2,
-                        maxLines = 5
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                            .padding(12.dp)
+                    ) {
+                        BasicTextField(
+                            value = notesValue,
+                            onValueChange = { 
+                                notesValue = it
+                                onUpdateNotes(it.takeIf { s -> s.isNotBlank() })
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            decorationBox = { innerTextField ->
+                                if (notesValue.isEmpty()) {
+                                    Text("Add notes...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), style = MaterialTheme.typography.bodySmall)
+                                }
+                                innerTextField()
+                            }
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
@@ -471,22 +499,26 @@ fun TaskItem(
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = subtask.isCompleted,
-                                onCheckedChange = { isChecked ->
-                                    val updatedSubtasks = task.subtasks.map { 
-                                        if (it.id == subtask.id) it.copy(isCompleted = isChecked) else it 
-                                    }
-                                    onUpdateSubtasks(updatedSubtasks)
-                                },
-                                modifier = Modifier.size(24.dp),
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                    checkmarkColor = MaterialTheme.colorScheme.onSurface,
-                                    uncheckedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            if (subtask.text.isNotEmpty()) {
+                                Checkbox(
+                                    checked = subtask.isCompleted,
+                                    onCheckedChange = { isChecked ->
+                                        val updatedSubtasks = task.subtasks.map { 
+                                            if (it.id == subtask.id) it.copy(isCompleted = isChecked) else it 
+                                        }
+                                        onUpdateSubtasks(updatedSubtasks)
+                                    },
+                                    modifier = Modifier.size(24.dp),
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                        checkmarkColor = MaterialTheme.colorScheme.onSurface,
+                                        uncheckedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                    )
                                 )
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            } else {
+                                Spacer(modifier = Modifier.size(24.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
                             BasicTextField(
                                 value = subtask.text,
                                 onValueChange = { newText ->
@@ -497,10 +529,16 @@ fun TaskItem(
                                 },
                                 modifier = Modifier.weight(1f),
                                 textStyle = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = if (subtask.isCompleted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
                                     textDecoration = if (subtask.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                                 ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                decorationBox = { innerTextField ->
+                                    if (subtask.text.isEmpty()) {
+                                        Text("New subtask...", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    innerTextField()
+                                }
                             )
                             IconButton(
                                 onClick = { 

@@ -56,7 +56,8 @@ data class HomeUiState(
     val totalTasks: Int = 0,
     val isVaultEnabled: Boolean = false,
     val isVaultAuthenticated: Boolean = false,
-    val selectedFocusDuration: Int = 25
+    val selectedFocusDuration: Int = 25,
+    val lifetimeCompletedTasks: Int = 0
 )
 
 @HiltViewModel
@@ -200,6 +201,7 @@ class HomeViewModel @Inject constructor(
         val customHex = com.zincstate.hepta.util.AppPreferences.getCustomColorHex(context)
         val customColor = customHex?.let { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(it)) } ?: androidx.compose.ui.graphics.Color.Unspecified
         val vaultEnabled = com.zincstate.hepta.util.AppPreferences.isVaultEnabled(context)
+        val lifetimeTasks = com.zincstate.hepta.util.AppPreferences.getLifetimeCompletedTasks(context)
         
         _state.update {
             it.copy(
@@ -209,7 +211,8 @@ class HomeViewModel @Inject constructor(
                 customThemeColor = customColor,
                 isDarkMode = savedTheme != com.zincstate.hepta.ui.theme.ZenTheme.ARCTIC && savedTheme != com.zincstate.hepta.ui.theme.ZenTheme.SEPIA,
                 isVaultEnabled = vaultEnabled,
-                isVaultAuthenticated = !vaultEnabled // If vault is off, consider authenticated
+                isVaultAuthenticated = !vaultEnabled, // If vault is off, consider authenticated
+                lifetimeCompletedTasks = lifetimeTasks
             )
         }
 
@@ -504,7 +507,17 @@ class HomeViewModel @Inject constructor(
     fun toggleTask(task: Task) {
         Log.d("TaskDebug", "toggleTask called: id=${task.id}, text='${task.text}', isCompleted=${task.isCompleted}")
         viewModelScope.launch {
-            useCases.updateTask(task.copy(isCompleted = !task.isCompleted))
+            val isNowCompleted = !task.isCompleted
+            useCases.updateTask(task.copy(isCompleted = isNowCompleted))
+            
+            if (isNowCompleted) {
+                com.zincstate.hepta.util.AppPreferences.incrementLifetimeCompletedTasks(context)
+            } else {
+                com.zincstate.hepta.util.AppPreferences.decrementLifetimeCompletedTasks(context)
+            }
+            val lifetimeTasks = com.zincstate.hepta.util.AppPreferences.getLifetimeCompletedTasks(context)
+            _state.update { it.copy(lifetimeCompletedTasks = lifetimeTasks) }
+            
             Log.d("TaskDebug", "toggleTask update triggered for id=${task.id}")
         }
     }

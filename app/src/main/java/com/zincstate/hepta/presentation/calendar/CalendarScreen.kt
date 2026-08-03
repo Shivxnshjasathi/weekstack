@@ -1,6 +1,8 @@
 package com.zincstate.hepta.presentation.calendar
 
 import android.os.Build
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -204,7 +206,8 @@ fun CalendarScreen(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 16.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     selectedTasks.forEach { task ->
@@ -262,7 +265,8 @@ fun CalendarScreen(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 16.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     milestones.forEach { milestone ->

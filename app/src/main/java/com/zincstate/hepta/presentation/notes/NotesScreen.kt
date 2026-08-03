@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +38,8 @@ fun NotesScreen(
     onBack: () -> Unit,
     onNavigateToCalendar: () -> Unit,
     noteDao: NoteDao,
-    todayTasks: List<Task> = emptyList()
+    todayTasks: List<Task> = emptyList(),
+    onToggleTask: (Task) -> Unit = {}
 ) {
     val today = remember { LocalDate.now() }
     val dateFormatted = remember(today) {
@@ -201,26 +203,32 @@ fun NotesScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 6.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f))
+                                .clickable { onToggleTask(task) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(
                                 checked = task.isCompleted,
-                                onCheckedChange = null, // Read-only in notes view
+                                onCheckedChange = { onToggleTask(task) },
                                 colors = CheckboxDefaults.colors(
                                     checkedColor = MaterialTheme.colorScheme.primary,
                                     checkmarkColor = MaterialTheme.colorScheme.onSurface,
                                     uncheckedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                                )
+                                ),
+                                modifier = Modifier.size(22.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
                             Text(
                                 text = task.text,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = if (task.isCompleted)
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                                 else
-                                    MaterialTheme.colorScheme.onSurface
+                                    MaterialTheme.colorScheme.onSurface,
+                                textDecoration = if (task.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
                             )
                         }
                     }

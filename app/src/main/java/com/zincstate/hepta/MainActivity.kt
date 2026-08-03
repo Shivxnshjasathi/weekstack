@@ -23,6 +23,8 @@ import com.zincstate.hepta.presentation.about.PrivacyPolicyScreen
 import com.zincstate.hepta.presentation.calendar.CalendarScreen
 import com.zincstate.hepta.presentation.notes.NotesScreen
 import androidx.compose.runtime.getValue
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -83,31 +85,37 @@ class MainActivity : FragmentActivity() {
                         }
                     )
                 } else {
-                    var currentScreen by remember { mutableStateOf("home") }
+                    val screenStack = remember { mutableStateListOf("home") }
+                    val currentScreen = screenStack.last()
+                    
+                    BackHandler(enabled = screenStack.size > 1) {
+                        screenStack.removeAt(screenStack.lastIndex)
+                    }
 
                     Crossfade(targetState = currentScreen, label = "screen_nav") { screen ->
                         when (screen) {
                             "home" -> HomeScreen(
                                 viewModel = viewModel,
-                                onNavigateToAbout = { currentScreen = "about" },
-                                onNavigateToCalendar = { currentScreen = "calendar" },
-                                onNavigateToNotes = { currentScreen = "notes" }
+                                onNavigateToAbout = { screenStack.add("about") },
+                                onNavigateToCalendar = { screenStack.add("calendar") },
+                                onNavigateToNotes = { screenStack.add("notes") }
                             )
                             "about" -> AboutScreen(
-                                onBack = { currentScreen = "home" },
+                                onBack = { if (screenStack.size > 1) screenStack.removeAt(screenStack.lastIndex) },
                                 currentTheme = state.currentZenTheme,
                                 onThemeChange = { viewModel.onThemeChange(it) },
                                 onCustomThemeChange = { viewModel.onCustomThemeChange(it) },
                                 onApplyPreset = { viewModel.applyPreset(it) },
                                 isVaultEnabled = state.isVaultEnabled,
                                 onVaultToggle = { viewModel.toggleVault(it) },
-                                onNavigateToPrivacyPolicy = { currentScreen = "privacy" }
+                                lifetimeCompletedTasks = state.lifetimeCompletedTasks,
+                                onNavigateToPrivacyPolicy = { screenStack.add("privacy") }
                             )
                             "privacy" -> PrivacyPolicyScreen(
-                                onBack = { currentScreen = "about" }
+                                onBack = { if (screenStack.size > 1) screenStack.removeAt(screenStack.lastIndex) }
                             )
                             "calendar" -> CalendarScreen(
-                                onBack = { currentScreen = "home" },
+                                onBack = { if (screenStack.size > 1) screenStack.removeAt(screenStack.lastIndex) },
                                 dates = state.datesOfWeek,
                                 tasksMap = state.tasksMap,
                                 milestones = state.milestones,
@@ -118,10 +126,11 @@ class MainActivity : FragmentActivity() {
                                 onDeleteMilestone = { viewModel.deleteMilestone(it) }
                             )
                             "notes" -> NotesScreen(
-                                onBack = { currentScreen = "home" },
-                                onNavigateToCalendar = { currentScreen = "calendar" },
+                                onBack = { if (screenStack.size > 1) screenStack.removeAt(screenStack.lastIndex) },
+                                onNavigateToCalendar = { screenStack.add("calendar") },
                                 noteDao = noteDao,
-                                todayTasks = state.tasksMap[LocalDate.now()] ?: emptyList()
+                                todayTasks = state.tasksMap[LocalDate.now()] ?: emptyList(),
+                                onToggleTask = { viewModel.toggleTask(it) }
                             )
                         }
                     }

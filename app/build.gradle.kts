@@ -14,8 +14,8 @@ android {
         applicationId = "com.zincstate.hepta"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "7.0"
+        versionCode = 9
+        versionName = "9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         

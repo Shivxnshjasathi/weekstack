@@ -8,8 +8,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.res.stringResource
 import com.zincstate.hepta.R
 import androidx.compose.runtime.Composable
@@ -18,6 +16,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -38,17 +40,12 @@ fun AddTaskInput(
 
     Row(modifier = modifier
         .fillMaxWidth()
-        .padding(horizontal = 24.dp, vertical = 4.dp)
+        .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        TextField(
+        BasicTextField(
             value = textValue,
             onValueChange = { textValue = it },
-            placeholder = { 
-                Text(
-                    text = stringResource(R.string.add_task_placeholder), 
-                    color = MaterialTheme.colorScheme.secondary
-                ) 
-            },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
@@ -66,13 +63,22 @@ fun AddTaskInput(
                     }
                 }
             ),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-            )
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (textValue.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.add_task_placeholder), 
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    innerTextField()
+                }
+            }
         )
     }
 }

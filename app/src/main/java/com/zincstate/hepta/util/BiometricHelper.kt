@@ -45,6 +45,22 @@ object AppPreferences {
     fun setCustomColorHex(context: Context, hex: String) {
         prefs(context).edit().putString(KEY_CUSTOM_THEME_COLOR, hex).apply()
     }
+
+    fun getLifetimeCompletedTasks(context: Context): Int {
+        return prefs(context).getInt("lifetime_completed_tasks", 0)
+    }
+
+    fun incrementLifetimeCompletedTasks(context: Context) {
+        val current = getLifetimeCompletedTasks(context)
+        prefs(context).edit().putInt("lifetime_completed_tasks", current + 1).apply()
+    }
+
+    fun decrementLifetimeCompletedTasks(context: Context) {
+        val current = getLifetimeCompletedTasks(context)
+        if (current > 0) {
+            prefs(context).edit().putInt("lifetime_completed_tasks", current - 1).apply()
+        }
+    }
 }
 
 object BiometricHelper {

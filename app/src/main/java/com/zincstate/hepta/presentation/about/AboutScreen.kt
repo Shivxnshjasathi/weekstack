@@ -36,6 +36,7 @@ fun AboutScreen(
     onApplyPreset: (com.zincstate.hepta.domain.model.PresetType) -> Unit = {},
     isVaultEnabled: Boolean = false,
     onVaultToggle: (Boolean) -> Unit = {},
+    lifetimeCompletedTasks: Int = 0,
     onNavigateToPrivacyPolicy: () -> Unit = {}
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
@@ -109,7 +110,7 @@ fun AboutScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(48.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp),
             contentPadding = PaddingValues(bottom = 64.dp)
         ) {
             // 1. ZINCSTATE Branding
@@ -122,11 +123,13 @@ fun AboutScreen(
                         letterSpacing = 4.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                     Text(
                         text = "by Zincstate",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { uriHandler.openUri("https://www.zincstate.shop/") }
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
@@ -142,23 +145,34 @@ fun AboutScreen(
             item {
                 SectionHeader("THEME")
                 Spacer(modifier = Modifier.height(16.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Filter out standard Dark/Light themes as requested
+                val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+                val availableWidth = screenWidth - 48.dp
+                val columnCount = maxOf(4, (availableWidth.value / 72).toInt())
+                val spacing = 8.dp
+                val itemWidth = (availableWidth - (spacing * (columnCount - 1))) / columnCount
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                    // Filter out standard Dark/Light themes and the generic Custom node
                     ZenTheme.entries.filter { 
-                        it != ZenTheme.OBSIDIAN && it != ZenTheme.ARCTIC 
+                        it != ZenTheme.OBSIDIAN && it != ZenTheme.ARCTIC && it != ZenTheme.CUSTOM && it != ZenTheme.HACKER
                     }.forEach { theme ->
                         val colors = getZenColors(theme)
+                        val isLocked = theme.unlockRequirement > lifetimeCompletedTasks
+                        val context = androidx.compose.ui.platform.LocalContext.current
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .width(64.dp)
+                                .width(itemWidth)
                                 .clickable { 
                                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                                    onThemeChange(theme) 
+                                    if (isLocked) {
+                                        android.widget.Toast.makeText(context, "Unlock ${theme.displayName} by completing ${theme.unlockRequirement} tasks! (Current: $lifetimeCompletedTasks/${theme.unlockRequirement})", android.widget.Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        onThemeChange(theme)
+                                    }
                                 }
                                 .padding(vertical = 8.dp)
                         ) {
@@ -171,13 +185,19 @@ fun AboutScreen(
                                     )
                                     .border(
                                         width = if (currentTheme == theme) 2.dp else 1.dp,
-                                        color = if (currentTheme == theme) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        color = if (currentTheme == theme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
                                         shape = androidx.compose.foundation.shape.CircleShape
-                                    )
-                            )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isLocked) {
+                                    Box(modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.6f), androidx.compose.foundation.shape.CircleShape))
+                                    Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
+                                }
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = theme.name,
+                                text = theme.displayName.uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (currentTheme == theme) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                 fontSize = 8.sp,
@@ -190,7 +210,7 @@ fun AboutScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .width(64.dp)
+                            .width(itemWidth)
                             .clickable { showColorPicker = true }
                             .padding(vertical = 8.dp)
                     ) {
@@ -205,7 +225,7 @@ fun AboutScreen(
                                 )
                                 .border(
                                     width = if (currentTheme == ZenTheme.CUSTOM) 2.dp else 1.dp,
-                                    color = if (currentTheme == ZenTheme.CUSTOM) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    color = if (currentTheme == ZenTheme.CUSTOM) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
                                     shape = androidx.compose.foundation.shape.CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -241,15 +261,15 @@ fun AboutScreen(
                 )
                 
                 // Adaptive Grid for Presets
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val columnCount = when {
-                        maxWidth < 340.dp -> 1
-                        maxWidth < 600.dp -> 2
-                        else -> 3
-                    }
-                    val spacing = 16.dp
-                    val itemWidth = (maxWidth - (spacing * (columnCount - 1))) / columnCount
-                    
+                val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+                val availableWidth = screenWidth - 48.dp
+                val columnCount = when {
+                    availableWidth < 340.dp -> 1
+                    availableWidth < 600.dp -> 2
+                    else -> 3
+                }
+                val spacing = 16.dp
+                val itemWidth = (availableWidth - (spacing * (columnCount - 1))) / columnCount
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -266,7 +286,6 @@ fun AboutScreen(
                             )
                         }
                     }
-                }
             }
 
             // 2b. Vault Security Toggle
@@ -304,50 +323,10 @@ fun AboutScreen(
                 }
             }
 
-            // 3. The Hepta Philosophy
-            item {
-                SectionHeader("THE HEPTA PHILOSOPHY")
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "HEPTA is designed for the high-performance 'Flow State'. It removes all cognitive load by providing a strictly monochrome, 7-day grid focused on deep work and intentional task management.",
-                    style = MaterialTheme.typography.bodySmall,
-                    lineHeight = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
 
-            // 3. App Features
+            // Resources & Links
             item {
-                SectionHeader("ACTIVE FEATURES")
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    FeatureItem("Zen 7-Day Grid", "A unified, horizontal-less scroll of your entire week.")
-                    FeatureItem("Biometric Vault", "Secure your intentions with fingerprint or face ID integration.")
-                    FeatureItem("Deep Work Timer", "Integrated Pomodoro sessions with real-time status overlays.")
-                    FeatureItem("Infinity Inbox", "A permanent shelf for future intentions, tucked at the bottom.")
-                    FeatureItem("Weekly Analytics", "Real-time velocity and progress tracking via Zen Charts.")
-                }
-            }
- 
-
-
-            // 5. The Engine (Tech Stack)
-            item {
-                SectionHeader("THE ENGINE")
-                Spacer(modifier = Modifier.height(16.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf("Kotlin", "Jetpack Compose", "Room DB (v3)", "Hilt DI", "Flow & Coroutines", "Material 3", "MVI Architecture").forEach { tech ->
-                        SkillChip(tech)
-                    }
-                }
-            }
-            // Cross-Platform Availability
-            item {
-                SectionHeader("CROSS-PLATFORM")
+                SectionHeader("RESOURCES & LINKS")
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
@@ -367,7 +346,7 @@ fun AboutScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            text = "Hepta for Web & iOS",
+                            text = "Hepta Web",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold
@@ -379,12 +358,6 @@ fun AboutScreen(
                         )
                     }
                 }
-            }
-            
-            // 2c. Legal & Compliance
-            item {
-                SectionHeader("LEGAL & COMPLIANCE")
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 Row(
                     modifier = Modifier
@@ -409,6 +382,63 @@ fun AboutScreen(
                         )
                         Text(
                             text = "Data collection, calendar usage & policies",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { uriHandler.openUri("https://forms.gle/a9vGkDC1sx1Ur1GJ9") }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Report a Bug",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Help us improve HEPTA",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { uriHandler.openUri("https://forms.gle/8zKnU1T83tWmofPt7") }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.RateReview,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Submit a Suggestion",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "We'd love to hear your ideas",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )

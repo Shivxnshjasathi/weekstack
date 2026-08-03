@@ -83,13 +83,30 @@ fun DayHeader(
                 }
             )
     ) {
-        // Expandable Header (Taller & Bolder)
+        val animatedFontSize by animateFloatAsState(
+            targetValue = if (isExpanded) 24f else 36f,
+            animationSpec = androidx.compose.animation.core.tween(
+                durationMillis = 350,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing
+            ),
+            label = "fontSize"
+        )
+        
+        val verticalPadding by androidx.compose.animation.core.animateDpAsState(
+            targetValue = if (isExpanded) 16.dp else 32.dp,
+            animationSpec = androidx.compose.animation.core.tween(
+                durationMillis = 350,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing
+            ),
+            label = "verticalPadding"
+        )
+        
         val textColor = if (backgroundColor.red > 0.5f && backgroundColor.green > 0.5f && backgroundColor.blue > 0.5f) Color.Black else Color.White
         
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = if (isExpanded) 32.dp else 24.dp),
+                .padding(horizontal = 24.dp, vertical = verticalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
@@ -98,7 +115,8 @@ fun DayHeader(
                         text = date.format(dayOfWeekFormatter).uppercase(),
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
+                            letterSpacing = 1.sp,
+                            fontSize = animatedFontSize.sp
                         ),
                         color = textColor
                     )

@@ -64,8 +64,10 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val listState = rememberLazyListState()
     var draggingTaskId by remember { mutableStateOf<Int?>(null) }
+    var hackerClickCount by remember { mutableStateOf(0) }
     
     // Permission handling
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -118,10 +120,12 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(Unit) {
                     val edgeThreshold = 30.dp.toPx()
+                    var startX = 0f
                     detectHorizontalDragGestures(
+                        onDragStart = { startX = it.x },
                         onHorizontalDrag = { change, dragAmount ->
                             // Only trigger edge swipe if the interaction started near the edge
-                            if (change.position.x < edgeThreshold || change.previousPosition.x < edgeThreshold) {
+                            if (startX < edgeThreshold) {
                                 if (dragAmount > 20f) {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onNavigateToAbout()
@@ -316,20 +320,7 @@ fun HomeScreen(
                             }
                         }
 
-                        // 4. THE INFINITE SHELF (Analytics + Future Log)
-                        item(key = "infinite_shelf") {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp)
-                            ) {
-                                Spacer(modifier = Modifier.height(32.dp))
 
-                                // 4a. Future Log / Empty State Spacer
-                                Spacer(modifier = Modifier.height(32.dp))
-
-                            }
-                        }
 
                         // 4c. Inbox Tasks within the Shelf
                         if (state.inboxTasks.isNotEmpty()) {
@@ -424,7 +415,15 @@ fun HomeScreen(
                             indication = null,
                             onClick = { 
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onNavigateToNotes() 
+                                view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+                                hackerClickCount++
+                                if (hackerClickCount >= 7) {
+                                    hackerClickCount = 0
+                                    viewModel.onThemeChange(com.zincstate.hepta.ui.theme.ZenTheme.HACKER)
+                                    android.widget.Toast.makeText(context, "TERMINAL UNLOCKED", android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    onNavigateToNotes()
+                                }
                             }
                         ),
                     contentAlignment = Alignment.Center
@@ -441,7 +440,10 @@ fun HomeScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(24.dp))
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                        .clickable { viewModel.toggleStats() }
+                        .clickable { 
+                            view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+                            viewModel.toggleStats() 
+                        }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -463,8 +465,10 @@ fun HomeScreen(
 
             // 4. Weekly Stats sheet
             if (state.showStats) {
+                val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
                 ModalBottomSheet(
                     onDismissRequest = { viewModel.toggleStats() },
+                    sheetState = sheetState,
                     dragHandle = { BottomSheetDefaults.DragHandle(color = Color.Gray.copy(alpha = 0.3f)) },
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {
@@ -474,8 +478,10 @@ fun HomeScreen(
                         totalCompleted = state.totalCompletedTasks,
                         totalTasks = state.totalTasks,
                         deepWorkCount = state.totalDeepWorkCount,
+                        focusDuration = state.selectedFocusDuration,
                         weekProgress = state.weekProgress,
-                        onExport = { viewModel.exportTasksToCsv(context) }
+                        onExport = { viewModel.exportTasksToCsv(context) },
+                        onClose = { viewModel.toggleStats() }
                     )
                 }
             }
@@ -496,6 +502,15 @@ fun FocusTimerOverlay(
     val minutes = remainingSeconds / 60
     val seconds = remainingSeconds % 60
     val timeStr = "%02d:%02d".format(minutes, seconds)
+
+    val noiseGenerator = remember { com.zincstate.hepta.util.PinkNoiseGenerator() }
+    var isNoisePlaying by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            noiseGenerator.stop()
+        }
+    }
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -533,7 +548,27 @@ fun FocusTimerOverlay(
                 )
 
                 IconButton(
-                    onClick = onStop,
+                    onClick = {
+                        noiseGenerator.toggle()
+                        isNoisePlaying = noiseGenerator.isPlaying()
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = if (isNoisePlaying) 0.3f else 0.15f),
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isNoisePlaying) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                        contentDescription = "Soundscape",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        noiseGenerator.stop()
+                        onStop()
+                    },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                         contentColor = MaterialTheme.colorScheme.primary
@@ -565,142 +600,259 @@ fun WeeklyStatsSheet(
     totalCompleted: Int,
     totalTasks: Int,
     deepWorkCount: Int,
+    focusDuration: Int,
     weekProgress: Float,
-    onExport: () -> Unit
+    onExport: () -> Unit,
+    onClose: () -> Unit
 ) {
+    val surfaceColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val mutedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(24.dp)
-            .padding(bottom = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp)
     ) {
-        Text(
-            text = "ZEN ANALYTICS",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            letterSpacing = 4.sp
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Advanced Metric Nodes
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            InfoNode(
-                label = "EFFICIENCY",
-                value = "${(weekProgress * 100).toInt()}%",
-                modifier = Modifier.weight(1f)
+            Text(
+                text = "WEEKLY INSIGHTS",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                ),
+                color = onSurfaceColor
             )
-            InfoNode(
-                label = "VELOCITY",
-                value = "$totalCompleted/$totalTasks",
-                modifier = Modifier.weight(1f)
-            )
-            InfoNode(
-                label = "DEEP WORK",
-                value = "$deepWorkCount",
-                modifier = Modifier.weight(1f)
-            )
+            IconButton(onClick = onClose) {
+                Icon(
+                    imageVector = Icons.Default.Close, 
+                    contentDescription = "Close",
+                    tint = mutedColor
+                )
+            }
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        // Enhanced Bar Chart
+        // Top section (Donut + 2 Stat Cards)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
+                .height(200.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            
-            // Add a launch effect to trigger animation after composition
-            var showBars by remember { androidx.compose.runtime.mutableStateOf(false) }
-            LaunchedEffect(Unit) { showBars = true }
-            
-            dates.forEach { date ->
-                val targetCompletion = if (showBars) (stats[date] ?: 0f) else 0f
-                val completion by animateFloatAsState(
-                    targetValue = targetCompletion,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    label = "bar_anim"
-                )
-                
+            // Left Card (Donut Chart)
+            Surface(
+                modifier = Modifier.weight(1.1f).fillMaxHeight(),
+                color = surfaceColor,
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom,
-                    modifier = Modifier.fillMaxHeight()
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    val minHeight = if (totalTasks == 0) 0.02f else 0.05f
                     Box(
                         modifier = Modifier
-                            .width(16.dp)
-                            .fillMaxHeight(completion.coerceAtLeast(minHeight))
-                            .background(
-                                color = if (completion >= 1f && totalTasks > 0) MaterialTheme.colorScheme.primary 
-                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f + (completion * 0.5f)),
-                                shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Donut Chart
+                        val progressAnim by animateFloatAsState(
+                            targetValue = weekProgress,
+                            animationSpec = spring(stiffness = Spring.StiffnessLow),
+                            label = "donut_progress"
+                        )
+                        androidx.compose.foundation.Canvas(modifier = Modifier.size(90.dp)) {
+                            val strokeWidth = 10.dp.toPx()
+                            drawArc(
+                                color = trackColor,
+                                startAngle = 0f,
+                                sweepAngle = 360f,
+                                useCenter = false,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(strokeWidth, cap = StrokeCap.Round)
                             )
-                    )
+                            drawArc(
+                                color = Color.White,
+                                startAngle = -90f,
+                                sweepAngle = progressAnim * 360f,
+                                useCenter = false,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(strokeWidth, cap = StrokeCap.Round)
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${(weekProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                            Text(
+                                text = "DONE",
+                                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.sp, fontSize = 9.sp),
+                                color = mutedColor
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CheckCircleOutline, contentDescription = null, tint = onSurfaceColor, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("$totalCompleted Completed", style = MaterialTheme.typography.bodySmall, color = onSurfaceColor)
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = date.dayOfWeek.name.take(1),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.RadioButtonChecked, contentDescription = null, tint = mutedColor, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("${totalTasks - totalCompleted} Left", style = MaterialTheme.typography.bodySmall, color = mutedColor)
+                    }
+                }
+            }
+            
+            // Right Section (2 Cards)
+            Column(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Focus Time Card
+                Surface(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    color = surfaceColor,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = onSurfaceColor, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                val hours = (deepWorkCount * focusDuration) / 60
+                                val mins = (deepWorkCount * focusDuration) % 60
+                                Text(
+                                    text = "${hours}h ${mins}m",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "FOCUS TIME",
+                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontSize = 10.sp),
+                                    color = mutedColor
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Total Tasks Card
+                Surface(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    color = surfaceColor,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.Top) {
+                            Icon(Icons.Default.CheckCircleOutline, contentDescription = null, tint = onSurfaceColor, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "$totalTasks",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "TOTAL TASKS",
+                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontSize = 10.sp),
+                                    color = mutedColor
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        Button(
-            onClick = onExport,
+        // Bottom Bar Chart
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            shape = RoundedCornerShape(12.dp)
+            color = surfaceColor,
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("EXPORT WEEKLY ZEN LOG (CSV)", style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
-
-@Composable
-fun InfoNode(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                fontSize = 8.sp,
-                letterSpacing = 1.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "ACTIVITY THIS WEEK",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold),
+                    color = mutedColor
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    var showBars by remember { androidx.compose.runtime.mutableStateOf(false) }
+                    LaunchedEffect(Unit) { showBars = true }
+                    
+                    dates.forEach { date ->
+                        val targetCompletion = if (showBars) (stats[date] ?: 0f) else 0f
+                        val completion by animateFloatAsState(
+                            targetValue = targetCompletion,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                            label = "bar_anim"
+                        )
+                        
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                            modifier = Modifier.fillMaxHeight()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(14.dp)
+                                    .weight(1f)
+                                    .background(trackColor, CircleShape),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val heightFrac = completion.coerceIn(0f, 1f)
+                                if (heightFrac > 0f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(heightFrac)
+                                            .background(Color(0xFFB0BCC2), CircleShape)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = date.dayOfWeek.name.take(1),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = onSurfaceColor
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -5,22 +5,27 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 
-enum class ZenTheme(val displayName: String) {
-    OBSIDIAN("Obsidian"),
-    ARCTIC("Arctic"),
-    SEPIA("Sepia"),
-    NORD("Nord"),
-    GRAPHITE("Graphite"),
-    SLATE("Slate"),
-    FOREST("Forest"),
-    WINE("Wine"),
-    SAND("Sand"),
-    MIDNIGHT("Midnight"),
-    EVERFOREST("Everforest"),
-    ROSE_PINE("Rose Pine"),
-    CYBER("Cyber"),
-    SOLARIZED("Solarized"),
-    COBALT("Cobalt"),
+enum class ZenTheme(val displayName: String, val unlockRequirement: Int = 0) {
+    OBSIDIAN("Tokyo"),
+    ARCTIC("London"),
+    SEPIA("Rome"),
+    NORD("Oslo"),
+    GRAPHITE("Berlin"),
+    SLATE("New York", 5),
+    FOREST("Kyoto", 10),
+    WINE("Paris", 15),
+    SAND("Cairo", 20),
+    MIDNIGHT("Seoul", 25),
+    EVERFOREST("Seattle", 30),
+    ROSE_PINE("Venice", 35),
+    CYBER("Dubai", 40),
+    SOLARIZED("Miami", 45),
+    COBALT("Sydney", 50),
+    MUMBAI("Mumbai", 60),
+    BANGALORE("Bangalore", 70),
+    JAIPUR("Jaipur", 85),
+    TOKYO_NIGHT("Neon Tokyo", 100),
+    HACKER("Hacker Terminal", 999),
     CUSTOM("Custom")
 }
 
@@ -124,6 +129,58 @@ fun getZenColors(theme: ZenTheme, customColor: Color = Color.Unspecified): ZenCo
             headerShades = listOf(
                 Color(0xFF263326), Color(0xFF202B20), Color(0xFF1B261B),
                 Color(0xFF161E16), Color(0xFF111711), Color(0xFF0C100C), Color(0xFF070907)
+            )
+        )
+        ZenTheme.COBALT -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFF005F87),
+                background = Color(0xFF0D1B2A),
+                surface = Color(0xFF1B263B),
+                onBackground = Color(0xFFE0E1DD),
+                onSurface = Color(0xFFE0E1DD)
+            ),
+            headerShades = listOf(
+                Color(0xFF415A77), Color(0xFF1B263B), Color(0xFF0D1B2A),
+                Color(0xFF0B1724), Color(0xFF0A131F), Color(0xFF081019), Color(0xFF060B12)
+            )
+        )
+        ZenTheme.MUMBAI -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFFFF9933),
+                background = Color(0xFF1F1209),
+                surface = Color(0xFF331D12),
+                onBackground = Color(0xFFFDECDA),
+                onSurface = Color(0xFFFDECDA)
+            ),
+            headerShades = listOf(
+                Color(0xFF5E3622), Color(0xFF48291A), Color(0xFF331D12),
+                Color(0xFF29170E), Color(0xFF1F1209), Color(0xFF150C06), Color(0xFF0C0703)
+            )
+        )
+        ZenTheme.BANGALORE -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFF00D1FF),
+                background = Color(0xFF051914),
+                surface = Color(0xFF092921),
+                onBackground = Color(0xFFD6F5EE),
+                onSurface = Color(0xFFD6F5EE)
+            ),
+            headerShades = listOf(
+                Color(0xFF135242), Color(0xFF0E3E32), Color(0xFF092921),
+                Color(0xFF07211A), Color(0xFF051914), Color(0xFF03110D), Color(0xFF020907)
+            )
+        )
+        ZenTheme.JAIPUR -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFFE07A5F),
+                background = Color(0xFF281E1C),
+                surface = Color(0xFF3B2D2A),
+                onBackground = Color(0xFFF4EBE8),
+                onSurface = Color(0xFFF4EBE8)
+            ),
+            headerShades = listOf(
+                Color(0xFF6B514C), Color(0xFF533F3B), Color(0xFF3B2D2A),
+                Color(0xFF322623), Color(0xFF281E1C), Color(0xFF1E1715), Color(0xFF140F0E)
             )
         )
         ZenTheme.WINE -> ZenColors(
@@ -230,15 +287,41 @@ fun getZenColors(theme: ZenTheme, customColor: Color = Color.Unspecified): ZenCo
                 Color(0xFF001A33), Color(0xFF001121), Color(0xFF000B16), Color(0xFF00060B)
             )
         )
+        ZenTheme.TOKYO_NIGHT -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFFFF2A6D),
+                background = Color(0xFF0F041C),
+                surface = Color(0xFF1B0B2E),
+                onBackground = Color(0xFFE8D5F6),
+                onSurface = Color(0xFFE8D5F6)
+            ),
+            headerShades = listOf(
+                Color(0xFF3B1A53), Color(0xFF2C133F), Color(0xFF1B0B2E),
+                Color(0xFF150824), Color(0xFF0F041C), Color(0xFF0A0214), Color(0xFF05010B)
+            )
+        )
+        ZenTheme.HACKER -> ZenColors(
+            colorScheme = darkColorScheme(
+                primary = Color(0xFF00FF00),
+                background = Color(0xFF000000),
+                surface = Color(0xFF051005),
+                onBackground = Color(0xFF00FF00),
+                onSurface = Color(0xFF00FF00)
+            ),
+            headerShades = listOf(
+                Color(0xFF003300), Color(0xFF002200), Color(0xFF001100),
+                Color(0xFF051005), Color(0xFF000000), Color(0xFF000000), Color(0xFF000000)
+            )
+        )
         ZenTheme.CUSTOM -> ZenColors(
             colorScheme = darkColorScheme(
                 primary = Color(0xFFE0E0E0),
-                background = Color(0xFF121212),
-                surface = Color(0xFF1E1E1E),
+                background = Color(0xFF000000),
+                surface = Color(0xFF111111),
                 onBackground = Color(0xFFFFFFFF),
                 onSurface = Color(0xFFFFFFFF)
             ),
-            headerShades = List(7) { Color(0xFF121212) }
+            headerShades = List(7) { Color(0xFF000000) }
         )
     }
 }
