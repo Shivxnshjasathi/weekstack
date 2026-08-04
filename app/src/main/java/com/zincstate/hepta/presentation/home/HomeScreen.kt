@@ -325,6 +325,7 @@ fun HomeScreen(
                         // 4c. Inbox Tasks within the Shelf
                         if (state.inboxTasks.isNotEmpty()) {
                             item {
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                                     Text(
                                         text = "∞ THE INFINITY INBOX",

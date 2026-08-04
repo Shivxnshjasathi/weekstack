@@ -148,13 +148,13 @@ fun AboutScreen(
                 val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
                 val availableWidth = screenWidth - 48.dp
                 val columnCount = maxOf(4, (availableWidth.value / 72).toInt())
-                val spacing = 8.dp
-                val itemWidth = (availableWidth - (spacing * (columnCount - 1))) / columnCount
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
+                val itemWidth = (availableWidth / columnCount) - 0.1.dp
+                
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     // Filter out standard Dark/Light themes and the generic Custom node
                     ZenTheme.entries.filter { 
                         it != ZenTheme.OBSIDIAN && it != ZenTheme.ARCTIC && it != ZenTheme.CUSTOM && it != ZenTheme.HACKER
@@ -260,16 +260,7 @@ fun AboutScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
-                // Adaptive Grid for Presets
-                val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
-                val availableWidth = screenWidth - 48.dp
-                val columnCount = when {
-                    availableWidth < 340.dp -> 1
-                    availableWidth < 600.dp -> 2
-                    else -> 3
-                }
                 val spacing = 16.dp
-                val itemWidth = (availableWidth - (spacing * (columnCount - 1))) / columnCount
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -278,7 +269,9 @@ fun AboutScreen(
                         com.zincstate.hepta.domain.model.PresetType.entries.forEach { preset ->
                             GoalPresetCard(
                                 preset = preset,
-                                modifier = Modifier.width(itemWidth),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .widthIn(min = 140.dp),
                                 onClick = { 
                                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                     showPresetConfirm = preset 
